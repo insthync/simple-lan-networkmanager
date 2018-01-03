@@ -10,17 +10,17 @@ public class UILanNetworking : UIBase
 
     private void OnEnable()
     {
-        GameNetworkDiscovery.onReceivedBroadcast += OnReceivedBroadcast;
+        SimpleLanNetworkDiscovery.onReceivedBroadcast += OnReceivedBroadcast;
     }
 
     private void OnDisable()
     {
-        GameNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
+        SimpleLanNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
     }
 
     private void OnDestroy()
     {
-        GameNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
+        SimpleLanNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
     }
 
     private void OnReceivedBroadcast(string fromAddress, string data)
