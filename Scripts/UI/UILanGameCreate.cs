@@ -43,7 +43,7 @@ public class UILanGameCreate : UIBase
 
         if (selected == null)
         {
-            Logs.Error("Invalid map selection");
+            Debug.LogError("Invalid map selection");
             return;
         }
 
@@ -62,7 +62,7 @@ public class UILanGameCreate : UIBase
         base.Show();
         
         mapList.ClearOptions();
-        mapList.AddOptions(maps.Select(m => new Dropdown.OptionData(m.scene)).ToList());
+        mapList.AddOptions(maps.Select(m => new Dropdown.OptionData(m.mapName)).ToList());
         mapList.onValueChanged.RemoveListener(OnMapListChange);
         mapList.onValueChanged.AddListener(OnMapListChange);
 
