@@ -109,13 +109,6 @@ public class SimpleLanNetworkManager : NetworkManager
         isLanHost = false;
     }
 
-    public override void OnServerSceneChanged(string sceneName)
-    {
-        base.OnServerSceneChanged(sceneName);
-        if (gameRule != null)
-            gameRule.OnServerSceneChanged(sceneName);
-    }
-
     public void StartHostAndQuitIfCannotListen()
     {
         if (StartHost() == null)
