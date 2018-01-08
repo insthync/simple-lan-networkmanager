@@ -37,19 +37,14 @@ public class UILanNetworking : UIBase
         }
     }
 
-    public void OnClickStartLanHost()
+    public virtual void OnClickStartLanHost()
     {
         var networkManager = SimpleLanNetworkManager.Singleton;
-        var discoveryData = new NetworkDiscoveryData();
-        discoveryData.playerName = PlayerSave.GetPlayerName();
-        discoveryData.networkAddress = networkManager.networkAddress;
-        discoveryData.networkPort = networkManager.networkPort;
-        networkManager.NetworkDiscovery.useNetworkManager = false;
-        networkManager.NetworkDiscovery.broadcastData = JsonUtility.ToJson(discoveryData);
+        networkManager.WriteBroadcastData();
         networkManager.StartLanHost();
     }
 
-    public void OnClickRefreshLanGames()
+    public virtual void OnClickRefreshLanGames()
     {
         for (var i = gameListContainer.childCount - 1; i >= 0; --i)
         {

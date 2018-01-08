@@ -14,7 +14,7 @@ public class UIEnterNetworkAddress : UIBase
         inputPort.contentType = InputField.ContentType.IntegerNumber;
     }
 
-    public void OnClickConnect()
+    public virtual void OnClickConnect()
     {
         var networkManager = NetworkManager.singleton;
         networkManager.networkAddress = inputAddress.text;

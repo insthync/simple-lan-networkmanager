@@ -25,7 +25,7 @@ public class UILanNetworkingEntry : MonoBehaviour
             textPlayerCount.text = data.numPlayers + "/" + data.maxPlayers;
     }
 
-    public void OnClickJoinButton()
+    public virtual void OnClickJoinButton()
     {
         var networkManager = SimpleLanNetworkManager.Singleton;
         networkManager.networkAddress = _networkAddress;
