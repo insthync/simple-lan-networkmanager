@@ -25,6 +25,14 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     protected abstract void AddBot();
     protected abstract void EndMatch();
 
+    public virtual void AddBots()
+    {
+        for (var i = 0; i < botCount; ++i)
+        {
+            AddBot();
+        }
+    }
+
     public virtual void ReadConfigs(Dictionary<string, string> configs)
     {
         if (configs.ContainsKey(BotCountKey))
@@ -35,16 +43,16 @@ public abstract class BaseNetworkGameRule : ScriptableObject
 
     public virtual void OnServerSceneChanged(string sceneName)
     {
-        for (var i = 0; i < botCount; ++i)
-        {
-            AddBot();
-        }
+        AddBots();
     }
 
     public virtual void OnStartServer()
     {
         matchStartTime = Time.unscaledTime;
         isMatchEnded = false;
+
+        if (string.IsNullOrEmpty(manager.onlineScene) || manager.onlineScene.Equals(manager.offlineScene))
+            AddBots();
     }
 
     public virtual void OnUpdate()
