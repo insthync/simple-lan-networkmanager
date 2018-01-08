@@ -15,13 +15,8 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public int matchTime;
     private float matchStartTime;
     private bool isMatchEnded;
-    public SimpleLanNetworkManager manager { get; protected set; }
     public string Title { get { return title; } }
     public string Description { get { return description; } }
-    public BaseNetworkGameRule(SimpleLanNetworkManager manager)
-    {
-        this.manager = manager;
-    }
     protected abstract void AddBot();
     protected abstract void EndMatch();
 
@@ -50,9 +45,6 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     {
         matchStartTime = Time.unscaledTime;
         isMatchEnded = false;
-
-        if (string.IsNullOrEmpty(manager.onlineScene) || manager.onlineScene.Equals(manager.offlineScene))
-            AddBots();
     }
 
     public virtual void OnUpdate()
