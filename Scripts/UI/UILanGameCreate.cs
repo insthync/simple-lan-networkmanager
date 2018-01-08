@@ -13,34 +13,53 @@ public class UILanGameCreate : UIBase
         public string mapName;
         public SceneNameField scene;
         public Sprite previewImage;
+        public BaseNetworkGameRule[] availableGameRules;
     }
+
     public int maxPlayerCustomizable = 32;
+    public InputField inputRoomName;
     public InputField inputMaxPlayer;
+    public InputField inputBotCount;
+    public InputField inputMatchTime;
     public Image previewImage;
+    [Header("Map list")]
     public MapSelection[] maps;
     public Dropdown mapList;
+    [Header("Game rule list")]
+    public Dropdown gameRuleList;
 
-    public void OnClickCreateGame()
+    private BaseNetworkGameRule[] gameRules;
+
+    public virtual void OnClickCreateGame()
     {
         var selectedMap = GetSelectedMap();
+        var selectedGameRule = GetSelectedGameRule();
         var networkManager = SimpleLanNetworkManager.Singleton;
-        networkManager.maxConnections = int.Parse(inputMaxPlayer.text);
-        networkManager.onlineScene = selectedMap.scene.SceneName;
 
-        var discoveryData = new NetworkDiscoveryData();
-        discoveryData.playerName = PlayerSave.GetPlayerName();
-        discoveryData.networkAddress = networkManager.networkAddress;
-        discoveryData.networkPort = networkManager.networkPort;
-        networkManager.NetworkDiscovery.useNetworkManager = false;
-        networkManager.NetworkDiscovery.broadcastData = JsonUtility.ToJson(discoveryData);
+        if (selectedMap != null)
+            networkManager.onlineScene = selectedMap.scene.SceneName;
 
+        if (selectedGameRule != null)
+        {
+            selectedGameRule.botCount = inputBotCount == null ? 0 : int.Parse(inputBotCount.text);
+            selectedGameRule.matchTime = inputMatchTime == null ? 0 : int.Parse(inputMatchTime.text);
+            networkManager.gameRule = selectedGameRule;
+        }
+
+        if (inputMaxPlayer != null)
+            networkManager.maxConnections = int.Parse(inputMaxPlayer.text);
+
+        networkManager.WriteBroadcastData();
         networkManager.StartLanHost();
     }
 
     public void OnMapListChange(int value)
     {
-        var selected = GetSelectedMap();
+        if (gameRuleList != null)
+            gameRuleList.ClearOptions();
 
+        var selected = GetSelectedMap();
+        
         if (selected == null)
         {
             Debug.LogError("Invalid map selection");
@@ -48,6 +67,27 @@ public class UILanGameCreate : UIBase
         }
 
         previewImage.sprite = selected.previewImage;
+        gameRules = selected.availableGameRules;
+
+        if (gameRuleList != null)
+        {
+            gameRuleList.AddOptions(gameRules.Select(a => new Dropdown.OptionData(a.Title)).ToList());
+            gameRuleList.onValueChanged.RemoveListener(OnGameRuleListChange);
+            gameRuleList.onValueChanged.AddListener(OnGameRuleListChange);
+        }
+
+        OnGameRuleListChange(0);
+    }
+
+    public void OnGameRuleListChange(int value)
+    {
+        var selected = GetSelectedGameRule();
+
+        if (selected == null)
+        {
+            Debug.LogError("Invalid game rule selection");
+            return;
+        }
     }
 
     public void OnMaxPlayerChanged(string value)
@@ -57,19 +97,55 @@ public class UILanGameCreate : UIBase
             inputMaxPlayer.text = maxPlayer.ToString();
     }
 
+    public void OnBotCountChanged(string value)
+    {
+        int botCount = 0;
+        if (!int.TryParse(value, out botCount))
+            inputBotCount.text = botCount.ToString();
+    }
+
+    public void OnMatchTimeChanged(string value)
+    {
+        int matchTime = 0;
+        if (!int.TryParse(value, out matchTime))
+            inputBotCount.text = matchTime.ToString();
+    }
+
     public override void Show()
     {
         base.Show();
-        
-        mapList.ClearOptions();
-        mapList.AddOptions(maps.Select(m => new Dropdown.OptionData(m.mapName)).ToList());
-        mapList.onValueChanged.RemoveListener(OnMapListChange);
-        mapList.onValueChanged.AddListener(OnMapListChange);
 
-        inputMaxPlayer.contentType = InputField.ContentType.IntegerNumber;
-        inputMaxPlayer.text = maxPlayerCustomizable.ToString();
-        inputMaxPlayer.onValueChanged.RemoveListener(OnMaxPlayerChanged);
-        inputMaxPlayer.onValueChanged.AddListener(OnMaxPlayerChanged);
+        if (mapList != null)
+        {
+            mapList.ClearOptions();
+            mapList.AddOptions(maps.Select(a => new Dropdown.OptionData(a.mapName)).ToList());
+            mapList.onValueChanged.RemoveListener(OnMapListChange);
+            mapList.onValueChanged.AddListener(OnMapListChange);
+        }
+
+        if (inputMaxPlayer != null)
+        {
+            inputMaxPlayer.contentType = InputField.ContentType.IntegerNumber;
+            inputMaxPlayer.text = maxPlayerCustomizable.ToString();
+            inputMaxPlayer.onValueChanged.RemoveListener(OnMaxPlayerChanged);
+            inputMaxPlayer.onValueChanged.AddListener(OnMaxPlayerChanged);
+        }
+
+        if (inputBotCount != null)
+        {
+            inputBotCount.contentType = InputField.ContentType.IntegerNumber;
+            inputBotCount.text = "0";
+            inputBotCount.onValueChanged.RemoveListener(OnBotCountChanged);
+            inputBotCount.onValueChanged.AddListener(OnBotCountChanged);
+        }
+
+        if (inputMatchTime != null)
+        {
+            inputMatchTime.contentType = InputField.ContentType.IntegerNumber;
+            inputMatchTime.text = "0";
+            inputMatchTime.onValueChanged.RemoveListener(OnMatchTimeChanged);
+            inputMatchTime.onValueChanged.AddListener(OnMatchTimeChanged);
+        }
 
         OnMapListChange(0);
     }
@@ -78,5 +154,11 @@ public class UILanGameCreate : UIBase
     {
         var text = mapList.captionText.text;
         return maps.FirstOrDefault(m => m.mapName == text);
+    }
+
+    public BaseNetworkGameRule GetSelectedGameRule()
+    {
+        var text = gameRuleList.captionText.text;
+        return gameRules.FirstOrDefault(m => m.Title == text);
     }
 }
