@@ -14,6 +14,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     [Tooltip("Time in seconds, 0 = Unlimit")]
     public int matchTime;
     protected float matchStartTime;
+    protected bool isAddBotOnUpdate;
     protected bool isBotAdded;
     protected bool isMatchEnded;
     public string Title { get { return title; } }
@@ -37,16 +38,26 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             int.TryParse(configs[MatchTimeKey], out matchTime);
     }
 
-    public virtual void OnStartServer()
+    public virtual void OnServerSceneChanged(string sceneName)
+    {
+        if (!isBotAdded)
+        {
+            AddBots();
+            isBotAdded = true;
+        }
+    }
+
+    public virtual void OnStartServer(bool addBotOnUpdate)
     {
         matchStartTime = Time.unscaledTime;
+        isAddBotOnUpdate = addBotOnUpdate;
         isBotAdded = false;
         isMatchEnded = false;
     }
 
     public virtual void OnUpdate()
     {
-        if (!isBotAdded)
+        if (isAddBotOnUpdate && !isBotAdded)
         {
             AddBots();
             isBotAdded = true;

@@ -96,11 +96,18 @@ public class SimpleLanNetworkManager : NetworkManager
         NetworkDiscovery.StartAsServer();
     }
 
+    public override void OnServerSceneChanged(string sceneName)
+    {
+        base.OnServerSceneChanged(sceneName);
+        if (gameRule != null)
+            gameRule.OnServerSceneChanged(sceneName);
+    }
+
     public override void OnStartServer()
     {
         base.OnStartServer();
         if (gameRule != null)
-            gameRule.OnStartServer();
+            gameRule.OnStartServer(string.IsNullOrEmpty(onlineScene) || offlineScene.Equals(onlineScene));
     }
 
     public override void OnStopServer()
