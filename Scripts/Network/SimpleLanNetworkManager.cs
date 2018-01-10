@@ -23,7 +23,6 @@ public class SimpleLanNetworkManager : NetworkManager
     }
 
     public string roomName;
-    public BaseNetworkGameRule gameRule;
     
     private bool isLanHost;
     private int dirtyNumPlayers;
@@ -53,9 +52,6 @@ public class SimpleLanNetworkManager : NetworkManager
             StartCoroutine(RestartDiscoveryBroadcast());
             dirtyNumPlayers = numPlayers;
         }
-
-        if (gameRule != null)
-            gameRule.OnUpdate();
     }
 
     public void FindLanHosts()
@@ -94,20 +90,6 @@ public class SimpleLanNetworkManager : NetworkManager
         }
         NetworkDiscovery.Initialize();
         NetworkDiscovery.StartAsServer();
-    }
-
-    public override void OnServerSceneChanged(string sceneName)
-    {
-        base.OnServerSceneChanged(sceneName);
-        if (gameRule != null)
-            gameRule.OnServerSceneChanged(sceneName);
-    }
-
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
-        if (gameRule != null)
-            gameRule.OnStartServer(string.IsNullOrEmpty(onlineScene) || offlineScene.Equals(onlineScene));
     }
 
     public override void OnStopServer()
