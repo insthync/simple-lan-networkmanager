@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public abstract class BaseNetworkGameRule : ScriptableObject
 {
@@ -14,19 +15,23 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     [Tooltip("Time in seconds, 0 = Unlimit")]
     public int matchTime;
     protected float matchStartTime;
-    protected bool isAddBotOnUpdate;
+    protected BaseNetworkGameManager networkManager;
     protected bool isBotAdded;
     protected bool isMatchEnded;
     public string Title { get { return title; } }
     public string Description { get { return description; } }
-    protected abstract void AddBot();
+    protected abstract BaseNetworkGameCharacter NewBot();
     protected abstract void EndMatch();
 
     public virtual void AddBots()
     {
         for (var i = 0; i < botCount; ++i)
         {
-            AddBot();
+            var character = NewBot();
+            if (character == null)
+                continue;
+            NetworkServer.Spawn(character.gameObject);
+            networkManager.RegisterCharacter(character);
         }
     }
 
@@ -38,26 +43,17 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             int.TryParse(configs[MatchTimeKey], out matchTime);
     }
 
-    public virtual void OnServerSceneChanged(string sceneName)
-    {
-        if (!isBotAdded)
-        {
-            AddBots();
-            isBotAdded = true;
-        }
-    }
-
-    public virtual void OnStartServer(bool addBotOnUpdate)
+    public virtual void OnStartServer(BaseNetworkGameManager manager)
     {
         matchStartTime = Time.unscaledTime;
-        isAddBotOnUpdate = addBotOnUpdate;
+        networkManager = manager;
         isBotAdded = false;
         isMatchEnded = false;
     }
 
     public virtual void OnUpdate()
     {
-        if (isAddBotOnUpdate && !isBotAdded)
+        if (!isBotAdded)
         {
             AddBots();
             isBotAdded = true;

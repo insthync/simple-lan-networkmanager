@@ -35,15 +35,16 @@ public class UILanGameCreate : UIBase
         var selectedMap = GetSelectedMap();
         var selectedGameRule = GetSelectedGameRule();
         var networkManager = SimpleLanNetworkManager.Singleton;
+        var networkGameManager = networkManager as BaseNetworkGameManager;
 
         if (selectedMap != null)
             networkManager.onlineScene = selectedMap.scene.SceneName;
 
-        if (selectedGameRule != null)
+        if (selectedGameRule != null && networkGameManager != null)
         {
             selectedGameRule.botCount = inputBotCount == null ? 0 : int.Parse(inputBotCount.text);
             selectedGameRule.matchTime = inputMatchTime == null ? 0 : int.Parse(inputMatchTime.text);
-            networkManager.gameRule = selectedGameRule;
+            networkGameManager.gameRule = selectedGameRule;
         }
 
         if (inputMaxPlayer != null)
