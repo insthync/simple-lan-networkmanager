@@ -66,6 +66,20 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         Characters.Add(character);
     }
 
+    public bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams)
+    {
+        if (gameRule != null)
+            return gameRule.CanCharacterRespawn(character, extraParams);
+        return true;
+    }
+
+    public bool RespawnCharacter(BaseNetworkGameCharacter character, params object[] extraParams)
+    {
+        if (gameRule != null)
+            return gameRule.RespawnCharacter(character, extraParams);
+        return true;
+    }
+
     public override void OnStartClient(NetworkClient client)
     {
         base.OnStartClient(client);

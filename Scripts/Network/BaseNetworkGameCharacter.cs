@@ -24,6 +24,20 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
         this.networkManager = networkManager;
     }
 
+    public bool CanRespawn(params object[] extraParams)
+    {
+        if (networkManager != null)
+            return networkManager.CanCharacterRespawn(this, extraParams);
+        return true;
+    }
+    
+    public bool Respawn(params object[] extraParams)
+    {
+        if (networkManager != null)
+            return networkManager.RespawnCharacter(this, extraParams);
+        return true;
+    }
+
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();

@@ -22,6 +22,8 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public string Description { get { return description; } }
     protected abstract BaseNetworkGameCharacter NewBot();
     protected abstract void EndMatch();
+    public abstract bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams);
+    public abstract bool RespawnCharacter(BaseNetworkGameCharacter character, params object[] extraParams);
 
     public virtual void AddBots()
     {
