@@ -84,6 +84,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         base.OnStartClient(client);
         client.RegisterHandler(new OpMsgSendScores().OpId, ReadMsgSendScores);
+        client.RegisterHandler(new OpMsgGameRule().OpId, ReadMsgGameRule);
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
     }
@@ -94,12 +95,29 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         UpdateScores(msg.scores);
     }
 
+    protected void ReadMsgGameRule(NetworkMessage netMsg)
+    {
+        var msg = netMsg.ReadMessage<OpMsgGameRule>();
+        BaseNetworkGameRule foundGameRule;
+        if (BaseNetworkGameInstance.GameRules.TryGetValue(msg.gameRuleName, out foundGameRule))
+        {
+            gameRule = foundGameRule;
+            gameRule.InitialClientObjects(client);
+        }
+    }
+
     public override void OnServerReady(NetworkConnection conn)
     {
         base.OnServerReady(conn);
         var msgSendScores = new OpMsgSendScores();
         msgSendScores.scores = GetSortedScores();
         NetworkServer.SendToClient(conn.connectionId, msgSendScores.OpId, msgSendScores);
+        if (gameRule != null)
+        {
+            var msgGameRule = new OpMsgGameRule();
+            msgGameRule.gameRuleName = gameRule.name;
+            NetworkServer.SendToClient(conn.connectionId, msgGameRule.OpId, msgGameRule);
+        }
     }
 
     public override void OnServerAddPlayer(NetworkConnection conn, short playerControllerId, NetworkReader extraMessageReader)
@@ -140,6 +158,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void OnClientSceneChanged(NetworkConnection conn)
     {
         base.OnClientSceneChanged(conn);
+        Debug.LogError("test");
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
     }
