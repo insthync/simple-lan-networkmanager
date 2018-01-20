@@ -67,4 +67,6 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             EndMatch();
         }
     }
+
+    public abstract void InitialClientObjects(NetworkClient client);
 }

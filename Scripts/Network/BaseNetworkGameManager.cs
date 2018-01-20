@@ -84,6 +84,8 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         base.OnStartClient(client);
         client.RegisterHandler(new OpMsgSendScores().OpId, ReadMsgSendScores);
+        if (gameRule != null)
+            gameRule.InitialClientObjects(client);
     }
 
     protected void ReadMsgSendScores(NetworkMessage netMsg)
@@ -117,6 +119,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         DestroyPlayersForConnection(conn);
     }
 
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+        Characters.Clear();
+    }
+
     public void DestroyPlayersForConnection(NetworkConnection conn)
     {
         var playerControllers = conn.playerControllers;
@@ -129,10 +137,19 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         NetworkServer.DestroyPlayersForConnection(conn);
     }
 
+    public override void OnClientSceneChanged(NetworkConnection conn)
+    {
+        base.OnClientSceneChanged(conn);
+        if (gameRule != null)
+            gameRule.InitialClientObjects(client);
+    }
+
     public override void OnServerSceneChanged(string sceneName)
     {
         base.OnServerSceneChanged(sceneName);
         canUpdateGameRule = true;
+        if (gameRule != null && client != null)
+            gameRule.InitialClientObjects(client);
     }
 
     public override void OnStartServer()
