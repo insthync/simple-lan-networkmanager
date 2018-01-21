@@ -18,6 +18,44 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
     [SyncVar]
     public int dieCount;
 
+    public abstract bool IsDead { get; }
+    public int Score
+    {
+        get
+        {
+            if (IsDead)
+                return 0;
+            return score;
+        }
+    }
+    public int KillCount
+    {
+        get
+        {
+            if (IsDead)
+                return 0;
+            return killCount;
+        }
+    }
+    public int AssistCount
+    {
+        get
+        {
+            if (IsDead)
+                return 0;
+            return assistCount;
+        }
+    }
+    public int DieCount
+    {
+        get
+        {
+            if (IsDead)
+                return 0;
+            return dieCount;
+        }
+    }
+
     protected BaseNetworkGameManager networkManager;
     public void RegisterNetworkGameManager(BaseNetworkGameManager networkManager)
     {
@@ -50,6 +88,6 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
 
     public int CompareTo(BaseNetworkGameCharacter other)
     {
-        return ((-1 * score.CompareTo(other.score)) * 10) + netId.Value.CompareTo(other.netId.Value);
+        return ((-1 * Score.CompareTo(other.Score)) * 10) + netId.Value.CompareTo(other.netId.Value);
     }
 }

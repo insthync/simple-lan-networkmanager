@@ -54,10 +54,10 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             var ranking = new NetworkGameScore();
             ranking.netId = character.netId;
             ranking.playerName = character.playerName;
-            ranking.score = character.score;
-            ranking.killCount = character.killCount;
-            ranking.assistCount = character.assistCount;
-            ranking.dieCount = character.dieCount;
+            ranking.score = character.Score;
+            ranking.killCount = character.KillCount;
+            ranking.assistCount = character.AssistCount;
+            ranking.dieCount = character.DieCount;
             scores[i] = ranking;
         }
         return scores;
