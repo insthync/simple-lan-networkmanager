@@ -5,6 +5,11 @@ using UnityEngine.Networking;
 
 public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 {
+    public static new BaseNetworkGameManager Singleton
+    {
+        get { return singleton as BaseNetworkGameManager; }
+    }
+
     public BaseNetworkGameRule gameRule;
     public float updateScoreDuration = 1;
     protected float updateScoreTime;
