@@ -9,6 +9,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         get { return singleton as BaseNetworkGameManager; }
     }
+    public static event System.Action<int> onClientError;
 
     public BaseNetworkGameRule gameRule;
     public float updateScoreDuration = 1;
@@ -92,6 +93,13 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         client.RegisterHandler(new OpMsgGameRule().OpId, ReadMsgGameRule);
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
+    }
+
+    public override void OnClientError(NetworkConnection conn, int errorCode)
+    {
+        base.OnClientError(conn, errorCode);
+        if (onClientError != null)
+            onClientError(errorCode);
     }
 
     protected void ReadMsgSendScores(NetworkMessage netMsg)
