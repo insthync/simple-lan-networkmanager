@@ -56,30 +56,30 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
         }
     }
 
-    protected BaseNetworkGameManager networkManager;
+    public BaseNetworkGameManager NetworkManager { get; protected set; }
     public void RegisterNetworkGameManager(BaseNetworkGameManager networkManager)
     {
-        this.networkManager = networkManager;
+        NetworkManager = networkManager;
     }
 
     public bool CanRespawn(params object[] extraParams)
     {
-        if (networkManager != null)
-            return networkManager.CanCharacterRespawn(this, extraParams);
+        if (NetworkManager != null)
+            return NetworkManager.CanCharacterRespawn(this, extraParams);
         return true;
     }
     
     public bool Respawn(params object[] extraParams)
     {
-        if (networkManager != null)
-            return networkManager.RespawnCharacter(this, extraParams);
+        if (NetworkManager != null)
+            return NetworkManager.RespawnCharacter(this, extraParams);
         return true;
     }
 
     protected virtual void Update()
     {
-        if (networkManager != null)
-            networkManager.OnUpdateCharacter(this);
+        if (NetworkManager != null)
+            NetworkManager.OnUpdateCharacter(this);
     }
 
     public override void OnStartLocalPlayer()

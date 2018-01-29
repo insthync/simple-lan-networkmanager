@@ -11,12 +11,21 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     private string title;
     [SerializeField, TextArea]
     private string description;
+    [SerializeField]
+    private int defaultBotCount;
+    [HideInInspector]
     public int botCount;
-    [Tooltip("Time in seconds, 0 = Unlimit")]
+    [SerializeField, Tooltip("Time in seconds, 0 = Unlimit")]
+    private int defaultMatchTime;
+    [HideInInspector]
     public int matchTime;
-    [Tooltip("Match kill limit, 0 = Unlimit")]
+    [SerializeField, Tooltip("Match kill limit, 0 = Unlimit")]
+    private int defaultMatchKill;
+    [HideInInspector]
     public int matchKill;
-    [Tooltip("Match score limit, 0 = Unlimit")]
+    [SerializeField, Tooltip("Match score limit, 0 = Unlimit")]
+    private int defaultMatchScore;
+    [HideInInspector]
     public int matchScore;
     protected float matchStartTime;
     protected BaseNetworkGameManager networkManager;
@@ -26,12 +35,25 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public string Description { get { return description; } }
     protected abstract BaseNetworkGameCharacter NewBot();
     protected abstract void EndMatch();
+    public int DefaultBotCount { get { return defaultBotCount; } }
+    public int DefaultMatchTime { get { return defaultMatchTime; } }
+    public int DefaultMatchKill { get { return defaultMatchKill; } }
+    public int DefaultMatchScore { get { return defaultMatchScore; } }
     public abstract bool HasOptionBotCount { get; }
     public abstract bool HasOptionMatchTime { get; }
     public abstract bool HasOptionMatchKill { get; }
     public abstract bool HasOptionMatchScore { get; }
     public abstract bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams);
     public abstract bool RespawnCharacter(BaseNetworkGameCharacter character, params object[] extraParams);
+    public float RemainsMatchTime
+    {
+        get
+        {
+            if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime < matchTime && !isMatchEnded)
+                return matchTime - (Time.unscaledTime - matchStartTime);
+            return 0f;
+        }
+    }
 
     public virtual void AddBots()
     {

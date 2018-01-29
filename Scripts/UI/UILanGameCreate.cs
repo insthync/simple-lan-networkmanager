@@ -52,8 +52,10 @@ public class UILanGameCreate : UIBase
 
         if (selectedGameRule != null && networkGameManager != null)
         {
-            selectedGameRule.botCount = inputBotCount == null ? 0 : int.Parse(inputBotCount.text);
-            selectedGameRule.matchTime = inputMatchTime == null ? 0 : int.Parse(inputMatchTime.text);
+            selectedGameRule.botCount = inputBotCount == null ? selectedGameRule.DefaultBotCount : int.Parse(inputBotCount.text);
+            selectedGameRule.matchTime = inputMatchTime == null ? selectedGameRule.DefaultMatchTime : int.Parse(inputMatchTime.text);
+            selectedGameRule.matchKill = inputMatchKill == null ? selectedGameRule.DefaultMatchKill : int.Parse(inputMatchKill.text);
+            selectedGameRule.matchScore = inputMatchScore == null ? selectedGameRule.DefaultMatchScore : int.Parse(inputMatchScore.text);
             networkGameManager.gameRule = selectedGameRule;
         }
 
@@ -111,6 +113,38 @@ public class UILanGameCreate : UIBase
 
         if (containerMatchScore != null)
             containerMatchScore.SetActive(selected.HasOptionMatchScore);
+
+        if (inputBotCount != null)
+        {
+            inputBotCount.contentType = InputField.ContentType.IntegerNumber;
+            inputBotCount.text = selected.DefaultBotCount.ToString();
+            inputBotCount.onValueChanged.RemoveListener(OnBotCountChanged);
+            inputBotCount.onValueChanged.AddListener(OnBotCountChanged);
+        }
+
+        if (inputMatchTime != null)
+        {
+            inputMatchTime.contentType = InputField.ContentType.IntegerNumber;
+            inputMatchTime.text = selected.DefaultMatchTime.ToString();
+            inputMatchTime.onValueChanged.RemoveListener(OnMatchTimeChanged);
+            inputMatchTime.onValueChanged.AddListener(OnMatchTimeChanged);
+        }
+
+        if (inputMatchKill != null)
+        {
+            inputMatchKill.contentType = InputField.ContentType.IntegerNumber;
+            inputMatchKill.text = selected.DefaultMatchKill.ToString();
+            inputMatchKill.onValueChanged.RemoveListener(OnMatchKillChanged);
+            inputMatchKill.onValueChanged.AddListener(OnMatchKillChanged);
+        }
+
+        if (inputMatchScore != null)
+        {
+            inputMatchScore.contentType = InputField.ContentType.IntegerNumber;
+            inputMatchScore.text = selected.DefaultMatchScore.ToString();
+            inputMatchScore.onValueChanged.RemoveListener(OnMatchScoreChanged);
+            inputMatchScore.onValueChanged.AddListener(OnMatchScoreChanged);
+        }
     }
 
     public void OnMaxPlayerChanged(string value)
@@ -131,7 +165,21 @@ public class UILanGameCreate : UIBase
     {
         int matchTime = 0;
         if (!int.TryParse(value, out matchTime))
-            inputBotCount.text = matchTime.ToString();
+            inputMatchTime.text = matchTime.ToString();
+    }
+
+    public void OnMatchKillChanged(string value)
+    {
+        int matchKill = 0;
+        if (!int.TryParse(value, out matchKill))
+            inputMatchKill.text = matchKill.ToString();
+    }
+
+    public void OnMatchScoreChanged(string value)
+    {
+        int matchScore = 0;
+        if (!int.TryParse(value, out matchScore))
+            inputMatchScore.text = matchScore.ToString();
     }
 
     public override void Show()
@@ -152,22 +200,6 @@ public class UILanGameCreate : UIBase
             inputMaxPlayer.text = maxPlayerCustomizable.ToString();
             inputMaxPlayer.onValueChanged.RemoveListener(OnMaxPlayerChanged);
             inputMaxPlayer.onValueChanged.AddListener(OnMaxPlayerChanged);
-        }
-
-        if (inputBotCount != null)
-        {
-            inputBotCount.contentType = InputField.ContentType.IntegerNumber;
-            inputBotCount.text = "0";
-            inputBotCount.onValueChanged.RemoveListener(OnBotCountChanged);
-            inputBotCount.onValueChanged.AddListener(OnBotCountChanged);
-        }
-
-        if (inputMatchTime != null)
-        {
-            inputMatchTime.contentType = InputField.ContentType.IntegerNumber;
-            inputMatchTime.text = "0";
-            inputMatchTime.onValueChanged.RemoveListener(OnMatchTimeChanged);
-            inputMatchTime.onValueChanged.AddListener(OnMatchTimeChanged);
         }
 
         OnMapListChange(0);
