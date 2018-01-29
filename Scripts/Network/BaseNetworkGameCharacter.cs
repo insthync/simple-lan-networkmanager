@@ -90,6 +90,7 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
             return;
 
         Local = this;
+        NetworkManager = FindObjectOfType<BaseNetworkGameManager>();
     }
 
     public int CompareTo(BaseNetworkGameCharacter other)
