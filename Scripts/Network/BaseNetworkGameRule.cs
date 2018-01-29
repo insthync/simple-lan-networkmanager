@@ -35,6 +35,9 @@ public abstract class BaseNetworkGameRule : ScriptableObject
 
     public virtual void AddBots()
     {
+        if (!HasOptionBotCount)
+            return;
+
         for (var i = 0; i < botCount; ++i)
         {
             var character = NewBot();
@@ -69,7 +72,22 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             isBotAdded = true;
         }
 
-        if (matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !isMatchEnded)
+        if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !isMatchEnded)
+        {
+            isMatchEnded = true;
+            EndMatch();
+        }
+    }
+
+    public virtual void OnUpdateCharacter(BaseNetworkGameCharacter character)
+    {
+        if (HasOptionMatchScore && matchScore > 0 && character.Score >= matchScore)
+        {
+            isMatchEnded = true;
+            EndMatch();
+        }
+
+        if (HasOptionMatchKill && matchKill > 0 && character.KillCount >= matchKill)
         {
             isMatchEnded = true;
             EndMatch();

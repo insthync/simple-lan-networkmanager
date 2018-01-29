@@ -86,6 +86,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         return true;
     }
 
+    public void OnUpdateCharacter(BaseNetworkGameCharacter character)
+    {
+        if (gameRule != null)
+            gameRule.OnUpdateCharacter(character);
+    }
+
     public override void OnStartClient(NetworkClient client)
     {
         base.OnStartClient(client);

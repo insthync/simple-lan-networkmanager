@@ -76,6 +76,12 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
         return true;
     }
 
+    protected virtual void Update()
+    {
+        if (networkManager != null)
+            networkManager.OnUpdateCharacter(this);
+    }
+
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
