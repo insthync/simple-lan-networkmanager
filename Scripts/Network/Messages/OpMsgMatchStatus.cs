@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class OpMsgMatchTime : BaseOpMsg
+public class OpMsgMatchStatus : BaseOpMsg
 {
     public override short OpId
     {
@@ -13,4 +13,5 @@ public class OpMsgMatchTime : BaseOpMsg
     }
 
     public float remainsMatchTime;
+    public bool isMatchEnded;
 }
