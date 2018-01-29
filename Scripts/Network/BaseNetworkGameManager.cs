@@ -17,6 +17,8 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     protected readonly List<BaseNetworkGameCharacter> Characters = new List<BaseNetworkGameCharacter>();
     protected bool canUpdateGameRule;
     public float RemainsMatchTime { get; protected set; }
+    public bool IsMatchEnded { get; protected set; }
+    public float MatchEndedAt { get; protected set; }
 
     protected override void Update()
     {
@@ -43,9 +45,17 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         if (gameRule != null && Time.unscaledTime - updateMatchTime >= 1f)
         {
             RemainsMatchTime = gameRule.RemainsMatchTime;
-            var msgMatchTime = new OpMsgMatchTime();
-            msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
-            NetworkServer.SendToAll(msgMatchTime.OpId, msgMatchTime);
+            var msgMatchStatus = new OpMsgMatchStatus();
+            msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
+            msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
+            NetworkServer.SendToAll(msgMatchStatus.OpId, msgMatchStatus);
+
+            if (!IsMatchEnded && gameRule.IsMatchEnded)
+            {
+                IsMatchEnded = true;
+                MatchEndedAt = Time.unscaledTime;
+            }
+
             updateMatchTime = Time.unscaledTime;
         }
     }
@@ -107,7 +117,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         base.OnStartClient(client);
         client.RegisterHandler(new OpMsgSendScores().OpId, ReadMsgSendScores);
         client.RegisterHandler(new OpMsgGameRule().OpId, ReadMsgGameRule);
-        client.RegisterHandler(new OpMsgMatchTime().OpId, ReadMsgMatchTime);
+        client.RegisterHandler(new OpMsgMatchStatus().OpId, ReadMsgMatchStatus);
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
     }
@@ -136,10 +146,15 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    protected void ReadMsgMatchTime(NetworkMessage netMsg)
+    protected void ReadMsgMatchStatus(NetworkMessage netMsg)
     {
-        var msg = netMsg.ReadMessage<OpMsgMatchTime>();
+        var msg = netMsg.ReadMessage<OpMsgMatchStatus>();
         RemainsMatchTime = msg.remainsMatchTime;
+        if (!IsMatchEnded && msg.isMatchEnded)
+        {
+            IsMatchEnded = true;
+            MatchEndedAt = Time.unscaledTime;
+        }
     }
 
     public override void OnServerReady(NetworkConnection conn)
@@ -153,8 +168,9 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             var msgGameRule = new OpMsgGameRule();
             msgGameRule.gameRuleName = gameRule.name;
             NetworkServer.SendToClient(conn.connectionId, msgGameRule.OpId, msgGameRule);
-            var msgMatchTime = new OpMsgMatchTime();
+            var msgMatchTime = new OpMsgMatchStatus();
             msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
+            msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
             NetworkServer.SendToClient(conn.connectionId, msgMatchTime.OpId, msgMatchTime);
         }
     }
@@ -219,6 +235,8 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         updateScoreTime = 0f;
         updateMatchTime = 0f;
         RemainsMatchTime = 0f;
+        IsMatchEnded = false;
+        MatchEndedAt = 0f;
         // If online scene == offline scene or online scene is empty assume that it can update game rule immediately
         canUpdateGameRule = (string.IsNullOrEmpty(onlineScene) || offlineScene.Equals(onlineScene));
     }
