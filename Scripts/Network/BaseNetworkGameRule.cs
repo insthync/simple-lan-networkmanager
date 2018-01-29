@@ -14,6 +14,10 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public int botCount;
     [Tooltip("Time in seconds, 0 = Unlimit")]
     public int matchTime;
+    [Tooltip("Match kill limit, 0 = Unlimit")]
+    public int matchKill;
+    [Tooltip("Match score limit, 0 = Unlimit")]
+    public int matchScore;
     protected float matchStartTime;
     protected BaseNetworkGameManager networkManager;
     protected bool isBotAdded;
@@ -22,6 +26,10 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public string Description { get { return description; } }
     protected abstract BaseNetworkGameCharacter NewBot();
     protected abstract void EndMatch();
+    public abstract bool HasOptionBotCount { get; }
+    public abstract bool HasOptionMatchTime { get; }
+    public abstract bool HasOptionMatchKill { get; }
+    public abstract bool HasOptionMatchScore { get; }
     public abstract bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams);
     public abstract bool RespawnCharacter(BaseNetworkGameCharacter character, params object[] extraParams);
 
