@@ -6,6 +6,8 @@ public abstract class BaseNetworkGameRule : ScriptableObject
 {
     public const string BotCountKey = "BotCount";
     public const string MatchTimeKey = "MatchTime";
+    public const string MatchKillKey = "MatchKill";
+    public const string MatchScoreKey = "MatchScore";
 
     [SerializeField]
     private string title;
@@ -76,6 +78,10 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             int.TryParse(configs[BotCountKey], out botCount);
         if (configs.ContainsKey(MatchTimeKey))
             int.TryParse(configs[MatchTimeKey], out matchTime);
+        if (configs.ContainsKey(MatchKillKey))
+            int.TryParse(configs[MatchKillKey], out matchKill);
+        if (configs.ContainsKey(MatchScoreKey))
+            int.TryParse(configs[MatchScoreKey], out matchScore);
     }
 
     public virtual void OnStartServer(BaseNetworkGameManager manager)
