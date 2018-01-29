@@ -32,7 +32,6 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     protected float matchStartTime;
     protected BaseNetworkGameManager networkManager;
     protected bool isBotAdded;
-    protected bool isMatchEnded;
     public string Title { get { return title; } }
     public string Description { get { return description; } }
     protected abstract BaseNetworkGameCharacter NewBot();
@@ -51,11 +50,12 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     {
         get
         {
-            if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime < matchTime && !isMatchEnded)
+            if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime < matchTime && !IsMatchEnded)
                 return matchTime - (Time.unscaledTime - matchStartTime);
             return 0f;
         }
     }
+    public bool IsMatchEnded { get; protected set; }
 
     public virtual void AddBots()
     {
@@ -89,7 +89,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         matchStartTime = Time.unscaledTime;
         networkManager = manager;
         isBotAdded = false;
-        isMatchEnded = false;
+        IsMatchEnded = false;
     }
 
     public virtual void OnUpdate()
@@ -100,9 +100,9 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             isBotAdded = true;
         }
 
-        if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !isMatchEnded)
+        if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !IsMatchEnded)
         {
-            isMatchEnded = true;
+            IsMatchEnded = true;
             EndMatch();
         }
     }
@@ -111,13 +111,13 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     {
         if (HasOptionMatchScore && matchScore > 0 && character.Score >= matchScore)
         {
-            isMatchEnded = true;
+            IsMatchEnded = true;
             EndMatch();
         }
 
         if (HasOptionMatchKill && matchKill > 0 && character.KillCount >= matchKill)
         {
-            isMatchEnded = true;
+            IsMatchEnded = true;
             EndMatch();
         }
     }
