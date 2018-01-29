@@ -49,8 +49,16 @@ public class SimpleLanNetworkManager : NetworkManager
         if (isLanHost && numPlayers != dirtyNumPlayers)
         {
             WriteBroadcastData();
-            StartCoroutine(RestartDiscoveryBroadcast());
             dirtyNumPlayers = numPlayers;
+        }
+    }
+
+    private IEnumerator StopNetworkDiscovery()
+    {
+        if (NetworkDiscovery.running)
+        {
+            NetworkDiscovery.StopBroadcast();
+            yield return new WaitForSeconds(0.5f);
         }
     }
 
@@ -61,11 +69,7 @@ public class SimpleLanNetworkManager : NetworkManager
 
     private IEnumerator FindLanHostsRoutine()
     {
-        if (NetworkDiscovery.running)
-        {
-            NetworkDiscovery.StopBroadcast();
-            yield return new WaitForSeconds(0.5f);
-        }
+        yield return StartCoroutine(StopNetworkDiscovery());
         NetworkDiscovery.Initialize();
         NetworkDiscovery.StartAsClient();
     }
@@ -79,15 +83,13 @@ public class SimpleLanNetworkManager : NetworkManager
     {
         StartHost();
         isLanHost = true;
+        WriteBroadcastData();
+        StartCoroutine(RestartDiscoveryBroadcast());
     }
 
     private IEnumerator RestartDiscoveryBroadcast()
     {
-        if (NetworkDiscovery.running)
-        {
-            NetworkDiscovery.StopBroadcast();
-            yield return new WaitForSeconds(0.5f);
-        }
+        yield return StartCoroutine(StopNetworkDiscovery());
         NetworkDiscovery.Initialize();
         NetworkDiscovery.StartAsServer();
     }
