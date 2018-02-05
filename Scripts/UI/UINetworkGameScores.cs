@@ -10,18 +10,23 @@ public class UINetworkGameScores : MonoBehaviour
     public void UpdateRankings(NetworkGameScore[] rankings)
     {
         var i = 0;
+        var j = 0;
         for (; i < rankings.Length; ++i)
         {
             var ranking = rankings[i];
-            if (i < userRankings.Length)
+            if (!ranking.netId.IsEmpty())
             {
-                var userRanking = userRankings[i];
-                userRanking.SetData(i + 1, ranking);
-            }
+                if (i < userRankings.Length)
+                {
+                    var userRanking = userRankings[i];
+                    userRanking.SetData(j + 1, ranking);
+                }
 
-            var isLocal = BaseNetworkGameCharacter.Local != null && ranking.netId.Equals(BaseNetworkGameCharacter.Local.netId);
-            if (isLocal)
-                UpdateLocalRank(i + 1, ranking);
+                var isLocal = BaseNetworkGameCharacter.Local != null && ranking.netId.Equals(BaseNetworkGameCharacter.Local.netId);
+                if (isLocal)
+                    UpdateLocalRank(j + 1, ranking);
+                ++j;
+            }
         }
 
         for (; i < userRankings.Length; ++i)
