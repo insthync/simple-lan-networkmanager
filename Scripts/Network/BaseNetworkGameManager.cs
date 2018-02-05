@@ -67,6 +67,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     public NetworkGameScore[] GetSortedScores()
     {
+        for (var i = Characters.Count - 1; i >= 0; --i)
+        {
+            var character = Characters[i];
+            if (character == null)
+                Characters.RemoveAt(i);
+        }
         Characters.Sort();
         var scores = new NetworkGameScore[Characters.Count];
         for (var i = 0; i < Characters.Count; ++i)
@@ -213,7 +219,6 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void OnClientSceneChanged(NetworkConnection conn)
     {
         base.OnClientSceneChanged(conn);
-        Debug.LogError("test");
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
     }
