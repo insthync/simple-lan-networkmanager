@@ -87,6 +87,11 @@ public class SimpleLanNetworkManager : NetworkManager
         StartCoroutine(RestartDiscoveryBroadcast());
     }
 
+    public void StartGameClient()
+    {
+        StartClient();
+    }
+
     private IEnumerator RestartDiscoveryBroadcast()
     {
         yield return StartCoroutine(StopNetworkDiscovery());
