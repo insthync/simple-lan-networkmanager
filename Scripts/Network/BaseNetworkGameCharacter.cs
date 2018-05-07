@@ -23,7 +23,7 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
     {
         get
         {
-            if (IsDead)
+            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroScoreWhenDead)
                 return 0;
             return score;
         }
@@ -32,7 +32,7 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
     {
         get
         {
-            if (IsDead)
+            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroKillCountWhenDead)
                 return 0;
             return killCount;
         }
@@ -41,7 +41,7 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
     {
         get
         {
-            if (IsDead)
+            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroAssistCountWhenDead)
                 return 0;
             return assistCount;
         }
@@ -50,7 +50,7 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
     {
         get
         {
-            if (IsDead)
+            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroDieCountWhenDead)
                 return 0;
             return dieCount;
         }

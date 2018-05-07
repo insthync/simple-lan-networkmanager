@@ -40,10 +40,14 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public int DefaultMatchTime { get { return defaultMatchTime; } }
     public int DefaultMatchKill { get { return defaultMatchKill; } }
     public int DefaultMatchScore { get { return defaultMatchScore; } }
-    public abstract bool HasOptionBotCount { get; }
-    public abstract bool HasOptionMatchTime { get; }
-    public abstract bool HasOptionMatchKill { get; }
-    public abstract bool HasOptionMatchScore { get; }
+    public virtual bool HasOptionBotCount { get { return false; } }
+    public virtual bool HasOptionMatchTime { get { return false; } }
+    public virtual bool HasOptionMatchKill { get { return false; } }
+    public virtual bool HasOptionMatchScore { get { return false; } }
+    public virtual bool ShowZeroScoreWhenDead { get { return false; } }
+    public virtual bool ShowZeroKillCountWhenDead { get { return false; } }
+    public virtual bool ShowZeroAssistCountWhenDead { get { return false; } }
+    public virtual bool ShowZeroDieCountWhenDead { get { return false; ; } }
     public abstract bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams);
     public abstract bool RespawnCharacter(BaseNetworkGameCharacter character, params object[] extraParams);
     public float RemainsMatchTime
