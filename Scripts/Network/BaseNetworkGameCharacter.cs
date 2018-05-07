@@ -93,6 +93,26 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
         NetworkManager = FindObjectOfType<BaseNetworkGameManager>();
     }
 
+    public void ResetScore()
+    {
+        score = 0;
+    }
+
+    public void ResetKillCount()
+    {
+        killCount = 0;
+    }
+
+    public void ResetAssistCount()
+    {
+        assistCount = 0;
+    }
+
+    public void ResetDieCount()
+    {
+        dieCount = 0;
+    }
+
     public int CompareTo(BaseNetworkGameCharacter other)
     {
         return ((-1 * Score.CompareTo(other.Score)) * 10) + netId.Value.CompareTo(other.netId.Value);
