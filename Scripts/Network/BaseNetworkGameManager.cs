@@ -14,8 +14,8 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public BaseNetworkGameRule gameRule;
     protected float updateScoreTime;
     protected float updateMatchTime;
-    protected readonly List<BaseNetworkGameCharacter> Characters = new List<BaseNetworkGameCharacter>();
     protected bool canUpdateGameRule;
+    public readonly List<BaseNetworkGameCharacter> Characters = new List<BaseNetworkGameCharacter>();
     public float RemainsMatchTime { get; protected set; }
     public bool IsMatchEnded { get; protected set; }
     public float MatchEndedAt { get; protected set; }
