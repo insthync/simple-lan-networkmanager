@@ -20,6 +20,32 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public bool IsMatchEnded { get; protected set; }
     public float MatchEndedAt { get; protected set; }
 
+    public int CountAliveCharacters()
+    {
+        var count = 0;
+        foreach (var character in Characters)
+        {
+            if (character == null)
+                continue;
+            if (!character.IsDead)
+                ++count;
+        }
+        return count;
+    }
+
+    public int CountDeadCharacters()
+    {
+        var count = 0;
+        foreach (var character in Characters)
+        {
+            if (character == null)
+                continue;
+            if (character.IsDead)
+                ++count;
+        }
+        return count;
+    }
+
     protected override void Update()
     {
         base.Update();
