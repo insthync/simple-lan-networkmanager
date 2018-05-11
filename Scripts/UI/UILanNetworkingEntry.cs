@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class UILanNetworkingEntry : MonoBehaviour
 {
+    public Text textRoomName;
     public Text textPlayerName;
     public Text textSceneName;
     public Text textNetworkAddress;
@@ -15,6 +16,8 @@ public class UILanNetworkingEntry : MonoBehaviour
     {
         _networkAddress = networkAddress;
         _data = data;
+        if (textRoomName != null)
+            textRoomName.text = data.roomName;
         if (textPlayerName != null)
             textPlayerName.text = data.playerName;
         if (textSceneName != null)
