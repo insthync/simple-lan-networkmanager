@@ -28,19 +28,21 @@ public abstract class BaseNetworkGameInstance : MonoBehaviour
         // Android fix
         if (args == null)
             args = new string[0];
+        // Set manager instance
+        var manager = SimpleLanNetworkManager.Singleton as BaseNetworkGameManager;
         // If game running in batch mode, run as server
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null || IsArgsProvided(args, ARG_SERVER_START))
         {
             Application.targetFrameRate = 30;
             Debug.Log("Running as server in batch mode");
-            var serverPort = BaseNetworkGameManager.Singleton.networkPort;
-            BaseNetworkGameManager.Singleton.networkPort = ReadArgsInt(args, ARG_SERVER_PORT, serverPort);
-            var maxConnections = BaseNetworkGameManager.Singleton.maxConnections;
-            BaseNetworkGameManager.Singleton.maxConnections = ReadArgsInt(args, ARG_SERVER_MAX_CONNECTIONS, maxConnections);
-            var onlineScene = BaseNetworkGameManager.Singleton.onlineScene;
-            BaseNetworkGameManager.Singleton.onlineScene = ReadArgs(args, ARG_SERVER_GAME_ONLINE_SCENE, onlineScene);
+            var serverPort = manager.networkPort;
+            manager.networkPort = ReadArgsInt(args, ARG_SERVER_PORT, serverPort);
+            var maxConnections = manager.maxConnections;
+            manager.maxConnections = ReadArgsInt(args, ARG_SERVER_MAX_CONNECTIONS, maxConnections);
+            var onlineScene = manager.onlineScene;
+            manager.onlineScene = ReadArgs(args, ARG_SERVER_GAME_ONLINE_SCENE, onlineScene);
 
-            var gameRule = BaseNetworkGameManager.Singleton.gameRule;
+            var gameRule = manager.gameRule;
             if (GameRules.Count > 0)
             {
                 var allGameRules = new List<BaseNetworkGameRule>(GameRules.Values);
@@ -53,10 +55,10 @@ public abstract class BaseNetworkGameInstance : MonoBehaviour
                 if (gameRule != null)
                     gameRule.botCount = botCount;
 
-                BaseNetworkGameManager.Singleton.gameRule = gameRule;
+                manager.gameRule = gameRule;
             }
 
-            BaseNetworkGameManager.Singleton.StartDedicateServer();
+            manager.StartDedicateServer();
         }
     }
 
