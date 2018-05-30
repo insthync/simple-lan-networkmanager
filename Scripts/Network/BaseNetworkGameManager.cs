@@ -91,6 +91,18 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     }
 
+    public void SendKillNotify(string killerName, string victimName, string weaponId)
+    {
+        if (!NetworkServer.active)
+            return;
+
+        var msgKillNotify = new OpMsgKillNotify();
+        msgKillNotify.killerName = killerName;
+        msgKillNotify.victimName = victimName;
+        msgKillNotify.weaponId = weaponId;
+        NetworkServer.SendToAll(msgKillNotify.OpId, msgKillNotify);
+    }
+
     public NetworkGameScore[] GetSortedScores()
     {
         for (var i = Characters.Count - 1; i >= 0; --i)
@@ -150,6 +162,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         client.RegisterHandler(new OpMsgSendScores().OpId, ReadMsgSendScores);
         client.RegisterHandler(new OpMsgGameRule().OpId, ReadMsgGameRule);
         client.RegisterHandler(new OpMsgMatchStatus().OpId, ReadMsgMatchStatus);
+        client.RegisterHandler(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
     }
@@ -187,6 +200,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             IsMatchEnded = true;
             MatchEndedAt = Time.unscaledTime;
         }
+    }
+
+    protected void ReadMsgKillNotify(NetworkMessage netMsg)
+    {
+        var msg = netMsg.ReadMessage<OpMsgKillNotify>();
+        KillNotify(msg.killerName, msg.victimName, msg.weaponId);
     }
 
     public override void OnServerReady(NetworkConnection conn)
@@ -274,4 +293,5 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     protected abstract BaseNetworkGameCharacter NewCharacter(NetworkReader extraMessageReader);
     protected abstract void UpdateScores(NetworkGameScore[] scores);
+    protected abstract void KillNotify(string killerName, string victimName, string weaponId);
 }
