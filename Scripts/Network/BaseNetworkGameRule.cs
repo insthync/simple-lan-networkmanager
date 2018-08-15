@@ -100,8 +100,8 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     {
         if (!isBotAdded)
         {
-            AddBots();
             isBotAdded = true;
+            AddBots();
         }
 
         if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !IsMatchEnded)
