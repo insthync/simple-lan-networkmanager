@@ -116,4 +116,15 @@ public class SimpleLanNetworkManager : NetworkManager
         if (!StartServer())
             Application.Quit();
     }
+
+    public override void OnServerDisconnect(NetworkConnection conn)
+    {
+        NetworkServer.DestroyPlayersForConnection(conn);
+    }
+
+    public override void OnClientDisconnect(NetworkConnection conn)
+    {
+        base.OnClientDisconnect(conn);
+        StopClient();
+    }
 }
