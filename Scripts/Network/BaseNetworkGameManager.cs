@@ -62,9 +62,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
         if (Time.unscaledTime - updateScoreTime >= 1f)
         {
-            var msgSendScores = new OpMsgSendScores();
-            msgSendScores.scores = GetSortedScores();
-            NetworkServer.SendToAll(msgSendScores.OpId, msgSendScores);
+            if (gameRule == null || !gameRule.IsMatchEnded)
+            {
+                var msgSendScores = new OpMsgSendScores();
+                msgSendScores.scores = GetSortedScores();
+                NetworkServer.SendToAll(msgSendScores.OpId, msgSendScores);
+            }
             updateScoreTime = Time.unscaledTime;
         }
 
@@ -211,9 +214,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void OnServerReady(NetworkConnection conn)
     {
         base.OnServerReady(conn);
-        var msgSendScores = new OpMsgSendScores();
-        msgSendScores.scores = GetSortedScores();
-        NetworkServer.SendToClient(conn.connectionId, msgSendScores.OpId, msgSendScores);
+        if (gameRule == null || !gameRule.IsMatchEnded)
+        {
+            var msgSendScores = new OpMsgSendScores();
+            msgSendScores.scores = GetSortedScores();
+            NetworkServer.SendToClient(conn.connectionId, msgSendScores.OpId, msgSendScores);
+        }
         if (gameRule != null)
         {
             var msgGameRule = new OpMsgGameRule();
