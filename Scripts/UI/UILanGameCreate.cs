@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 
 public class UILanGameCreate : UIBase
@@ -41,17 +38,6 @@ public class UILanGameCreate : UIBase
         if (maps != null && maps.Length > 0)
             UpdateNetworkGameInstanceMaps();
     }
-
-#if UNITY_EDITOR
-    private void OnValidate()
-    {
-        if (maps != null && maps.Length > 0)
-        {
-            UpdateNetworkGameInstanceMaps();
-            EditorUtility.SetDirty(this);
-        }
-    }
-#endif
 
     public virtual void OnClickCreateGame()
     {
@@ -234,12 +220,7 @@ public class UILanGameCreate : UIBase
     public void UpdateNetworkGameInstanceMaps()
     {
         BaseNetworkGameInstance gameInstance = FindObjectOfType<BaseNetworkGameInstance>();
-        if (gameInstance != null)
-        {
+        if (gameInstance != null && (gameInstance.maps == null || gameInstance.maps.Length == 0))
             gameInstance.maps = maps;
-            maps = new MapSelection[0];
-            EditorUtility.SetDirty(gameInstance);
-            EditorUtility.SetDirty(this);
-        }
     }
 }
