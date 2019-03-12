@@ -233,8 +233,12 @@ public class UILanGameCreate : UIBase
     [ContextMenu("Update Network Game Instance Maps")]
     public void UpdateNetworkGameInstanceMaps()
     {
-        BaseNetworkGameInstance.Singleton.maps = maps;
-        BaseNetworkGameInstance.Singleton.SetupMaps();
-        maps = new MapSelection[0];
+        BaseNetworkGameInstance gameInstance = FindObjectOfType<BaseNetworkGameInstance>();
+        if (gameInstance != null)
+        {
+            gameInstance.maps = maps;
+            gameInstance.SetupMaps();
+            maps = new MapSelection[0];
+        }
     }
 }
