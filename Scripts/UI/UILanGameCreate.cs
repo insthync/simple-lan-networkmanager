@@ -2,20 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 
 public class UILanGameCreate : UIBase
 {
-    [System.Serializable]
-    public class MapSelection
-    {
-        public string mapName;
-        public SceneNameField scene;
-        public Sprite previewImage;
-        public BaseNetworkGameRule[] availableGameRules;
-    }
-
     public int maxPlayerCustomizable = 32;
     public InputField inputRoomName;
     public InputField inputMaxPlayer;
@@ -33,12 +27,31 @@ public class UILanGameCreate : UIBase
     public InputField inputMatchScore;
     [Header("Maps")]
     public Image previewImage;
+    [HideInInspector]
+    // TODO: Will be deleted later
     public MapSelection[] maps;
     public Dropdown mapList;
     [Header("Game rules")]
     public Dropdown gameRuleList;
 
     private BaseNetworkGameRule[] gameRules;
+
+    private void Start()
+    {
+        if (maps != null && maps.Length > 0)
+            UpdateNetworkGameInstanceMaps();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (maps != null && maps.Length > 0)
+        {
+            UpdateNetworkGameInstanceMaps();
+            EditorUtility.SetDirty(this);
+        }
+    }
+#endif
 
     public virtual void OnClickCreateGame()
     {
@@ -215,5 +228,13 @@ public class UILanGameCreate : UIBase
     {
         var text = gameRuleList.captionText.text;
         return gameRules.FirstOrDefault(m => m.Title == text);
+    }
+
+    [ContextMenu("Update Network Game Instance Maps")]
+    public void UpdateNetworkGameInstanceMaps()
+    {
+        BaseNetworkGameInstance.Singleton.maps = maps;
+        BaseNetworkGameInstance.Singleton.SetupMaps();
+        maps = new MapSelection[0];
     }
 }

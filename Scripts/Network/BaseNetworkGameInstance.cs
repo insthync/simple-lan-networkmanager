@@ -3,6 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+[System.Serializable]
+public class MapSelection
+{
+    public string mapName;
+    public SceneNameField scene;
+    public Sprite previewImage;
+    public BaseNetworkGameRule[] availableGameRules;
+}
+
 public abstract class BaseNetworkGameInstance : MonoBehaviour
 {
     public const string ARG_SERVER_START = "-gameServerStart";
@@ -11,14 +20,34 @@ public abstract class BaseNetworkGameInstance : MonoBehaviour
     public const string ARG_SERVER_GAME_ONLINE_SCENE = "-gameOnlineScene";
     public const string ARG_SERVER_GAME_RULE = "-gameRule";
     public const string ARG_SERVER_BOT_COUNT = "-gameBotCount";
-    public BaseNetworkGameRule[] gameRules;
+    public static BaseNetworkGameInstance Singleton { get; private set; }
+    public MapSelection[] maps;
     public static Dictionary<string, BaseNetworkGameRule> GameRules = new Dictionary<string, BaseNetworkGameRule>();
+    public static Dictionary<string, MapSelection> MapListBySceneNames = new Dictionary<string, MapSelection>();
     protected virtual void Awake()
     {
-        GameRules.Clear();
-        foreach (var gameRule in gameRules)
+        if (Singleton != null)
         {
-            GameRules[gameRule.name] = gameRule;
+            Destroy(gameObject);
+            return;
+        }
+        Singleton = this;
+        DontDestroyOnLoad(gameObject);
+        SetupMaps();
+    }
+
+    public void SetupMaps()
+    {
+        MapListBySceneNames.Clear();
+        GameRules.Clear();
+        foreach (var map in maps)
+        {
+            foreach (var gameRule in map.availableGameRules)
+            {
+                if (!GameRules.ContainsKey(gameRule.name))
+                    GameRules[gameRule.name] = gameRule;
+            }
+            MapListBySceneNames[map.scene.SceneName] = map;
         }
     }
 
