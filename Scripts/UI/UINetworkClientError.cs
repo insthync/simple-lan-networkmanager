@@ -1,14 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using LiteNetLibManager;
-using System.Net.Sockets;
+using LiteNetLib;
+using System.Text.RegularExpressions;
 
 public class UINetworkClientError : MonoBehaviour
 {
     public static UINetworkClientError Singleton { get; private set; }
     public UIMessageDialog messageDialog;
-    public string roomFullMessage = "The room is full, try another room.";
 
     private void Awake()
     {
@@ -19,20 +18,17 @@ public class UINetworkClientError : MonoBehaviour
         }
         DontDestroyOnLoad(gameObject);
         Singleton = this;
-        BaseNetworkGameManager.onClientError += OnClientError;
+        BaseNetworkGameManager.onClientDisconnected += OnClientDisconnected;
     }
 
-    public void OnClientError(SocketError error)
+    public void OnClientDisconnected(DisconnectInfo disconnectInfo)
     {
-        if (messageDialog == null)
+        if (disconnectInfo.Reason == DisconnectReason.DisconnectPeerCalled)
             return;
 
-        switch (error)
-        {
-            case SocketError.ConnectionRefused:
-                if (!string.IsNullOrEmpty(roomFullMessage))
-                    messageDialog.Show(roomFullMessage);
-                break;
-        }
+        if (messageDialog == null)
+            return;
+        
+        messageDialog.Show(Regex.Replace(disconnectInfo.Reason.ToString(), "(?!^)([A-Z])", " $1"));
     }
 }

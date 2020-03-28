@@ -13,7 +13,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         get { return singleton as BaseNetworkGameManager; }
     }
-    public static event System.Action<SocketError> onClientError;
+    public static event System.Action<DisconnectInfo> onClientDisconnected;
 
     public BaseNetworkGameRule gameRule;
     protected float updateScoreTime;
@@ -179,11 +179,11 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         RegisterClientMessage(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
     }
 
-    public override void OnClientNetworkError(IPEndPoint endPoint, SocketError socketError)
+    public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
     {
-        base.OnClientNetworkError(endPoint, socketError);
-        if (onClientError != null)
-            onClientError.Invoke(socketError);
+        base.OnClientDisconnected(disconnectInfo);
+        if (onClientDisconnected != null)
+            onClientDisconnected.Invoke(disconnectInfo);
     }
 
     protected void ReadMsgSendScores(LiteNetLibMessageHandler messageHandler)
