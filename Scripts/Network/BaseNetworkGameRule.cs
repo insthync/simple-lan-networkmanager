@@ -59,7 +59,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         }
     }
     public bool IsMatchEnded { get; protected set; }
-    public BaseNetworkGameManager NetworkManager { get { return BaseNetworkGameManager.Singleton; } }
+    public BaseNetworkGameManager networkManager { get { return BaseNetworkGameManager.Singleton; } }
 
     public virtual void AddBots()
     {
@@ -71,8 +71,8 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             var character = NewBot();
             if (character == null)
                 continue;
-            NetworkManager.Assets.NetworkSpawn(character.gameObject);
-            NetworkManager.RegisterCharacter(character);
+            networkManager.Assets.NetworkSpawn(character.gameObject);
+            networkManager.RegisterCharacter(character);
         }
     }
 
