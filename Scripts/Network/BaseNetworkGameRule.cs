@@ -30,7 +30,6 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     [HideInInspector]
     public int matchScore;
     protected float matchStartTime;
-    protected BaseNetworkGameManager networkManager;
     protected bool isBotAdded;
     public string Title { get { return title; } }
     public string Description { get { return description; } }
@@ -60,6 +59,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         }
     }
     public bool IsMatchEnded { get; protected set; }
+    public BaseNetworkGameManager NetworkManager { get { return BaseNetworkGameManager.Singleton; } }
 
     public virtual void AddBots()
     {
@@ -71,8 +71,8 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             var character = NewBot();
             if (character == null)
                 continue;
-            networkManager.Assets.NetworkSpawn(character.gameObject);
-            networkManager.RegisterCharacter(character);
+            NetworkManager.Assets.NetworkSpawn(character.gameObject);
+            NetworkManager.RegisterCharacter(character);
         }
     }
 
@@ -88,10 +88,9 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             int.TryParse(configs[MatchScoreKey], out matchScore);
     }
 
-    public virtual void OnStartServer(BaseNetworkGameManager manager)
+    public virtual void OnStartServer()
     {
         matchStartTime = Time.unscaledTime;
-        networkManager = manager;
         isBotAdded = false;
         IsMatchEnded = false;
     }

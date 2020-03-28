@@ -300,7 +300,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         base.OnStartServer();
         if (gameRule != null)
-            gameRule.OnStartServer(this);
+            gameRule.OnStartServer();
 
         updateScoreTime = 0f;
         updateMatchTime = 0f;
