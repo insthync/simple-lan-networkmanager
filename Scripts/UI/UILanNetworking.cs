@@ -1,32 +1,42 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using LiteNetLibManager;
 
 public class UILanNetworking : UIBase
 {
     public UILanNetworkingEntry entryPrefab;
     public Transform gameListContainer;
     private readonly Dictionary<string, UILanNetworkingEntry> entries = new Dictionary<string, UILanNetworkingEntry>();
-    private SimpleLanNetworkDiscovery discovery;
-    
+    private LiteNetLibDiscovery discovery;
+
     private void OnEnable()
     {
+        if (discovery == null)
+            discovery = FindObjectOfType<LiteNetLibDiscovery>();
         if (discovery != null)
-            discovery = FindObjectOfType<SimpleLanNetworkDiscovery>();
-        if (discovery != null)
+        {
             discovery.onReceivedBroadcast += OnReceivedBroadcast;
+            discovery.StartClient();
+        }
     }
 
     private void OnDisable()
     {
         if (discovery != null)
+        {
             discovery.onReceivedBroadcast -= OnReceivedBroadcast;
+            discovery.StopClient();
+        }
     }
 
     private void OnDestroy()
     {
         if (discovery != null)
+        {
             discovery.onReceivedBroadcast -= OnReceivedBroadcast;
+            discovery.StopClient();
+        }
     }
 
     private void OnReceivedBroadcast(System.Net.IPEndPoint fromAddress, string data)
@@ -58,7 +68,11 @@ public class UILanNetworking : UIBase
             Destroy(child.gameObject);
         }
         entries.Clear();
-        SimpleLanNetworkManager.Singleton.FindLanHosts();
+        if (discovery != null)
+        {
+            discovery.StopClient();
+            discovery.StartClient();
+        }
     }
 
     public override void Show()

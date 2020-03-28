@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using LiteNetLibManager;
 
-[RequireComponent(typeof(SimpleLanNetworkDiscovery))]
+[RequireComponent(typeof(LiteNetLibDiscovery))]
 public class SimpleLanNetworkManager : LiteNetLibGameManager
 {
     protected static SimpleLanNetworkManager singleton { get; set; }
@@ -12,13 +12,13 @@ public class SimpleLanNetworkManager : LiteNetLibGameManager
         get { return singleton; }
     }
 
-    private SimpleLanNetworkDiscovery networkDiscovery;
-    public SimpleLanNetworkDiscovery NetworkDiscovery
+    private LiteNetLibDiscovery networkDiscovery;
+    public LiteNetLibDiscovery NetworkDiscovery
     {
         get
         {
             if (networkDiscovery == null)
-                networkDiscovery = GetComponent<SimpleLanNetworkDiscovery>();
+                networkDiscovery = GetComponent<LiteNetLibDiscovery>();
             return networkDiscovery;
         }
     }
@@ -65,24 +65,6 @@ public class SimpleLanNetworkManager : LiteNetLibGameManager
         }
     }
 
-    private IEnumerator StopNetworkDiscovery()
-    {
-        yield return null;
-        NetworkDiscovery.StopClient();
-        NetworkDiscovery.StopServer();
-    }
-
-    public void FindLanHosts()
-    {
-        StartCoroutine(FindLanHostsRoutine());
-    }
-
-    private IEnumerator FindLanHostsRoutine()
-    {
-        yield return StartCoroutine(StopNetworkDiscovery());
-        NetworkDiscovery.StartClient();
-    }
-
     public void StartDedicateServer()
     {
         StartServer();
@@ -93,24 +75,30 @@ public class SimpleLanNetworkManager : LiteNetLibGameManager
         StartHost();
         isLanHost = true;
         WriteBroadcastData();
-        StartCoroutine(RestartDiscoveryBroadcast());
+        // Stop discovery client because game started
+        NetworkDiscovery.StopClient();
+        // Start discovery server to allow clients to connect
+        NetworkDiscovery.StartServer();
     }
 
     public void StartGameClient()
     {
         StartClient();
-    }
-
-    private IEnumerator RestartDiscoveryBroadcast()
-    {
-        yield return StartCoroutine(StopNetworkDiscovery());
-        NetworkDiscovery.StartServer();
+        // Stop discovery client because game started
+        NetworkDiscovery.StopClient();
     }
 
     public override void OnStopServer()
     {
         base.OnStopServer();
         isLanHost = false;
+    }
+
+    public override void OnStopHost()
+    {
+        base.OnStopHost();
+        NetworkDiscovery.StopClient();
+        NetworkDiscovery.StopServer();
     }
 
     public void StartHostAndQuitIfCannotListen()
