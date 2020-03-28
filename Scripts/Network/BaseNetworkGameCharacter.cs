@@ -78,12 +78,12 @@ public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.ICo
 
     protected virtual void Start()
     {
-        if (IsOwnerClient)
-            OnStartLocalPlayer();
-        if (IsClient)
-            OnStartClient();
         if (IsServer)
             OnStartServer();
+        if (IsClient)
+            OnStartClient();
+        if (IsOwnerClient)
+            OnStartLocalPlayer();
     }
 
     public virtual void OnStartServer()
