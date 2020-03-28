@@ -47,7 +47,7 @@ public class UILanGameCreate : UIBase
         var networkGameManager = networkManager as BaseNetworkGameManager;
 
         if (selectedMap != null)
-            networkManager.onlineScene = selectedMap.scene.SceneName;
+            networkManager.Assets.onlineScene.SceneName = selectedMap.scene.SceneName;
 
         if (selectedGameRule != null && networkGameManager != null)
         {

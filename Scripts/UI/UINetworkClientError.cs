@@ -1,7 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
+using System.Net.Sockets;
 
 public class UINetworkClientError : MonoBehaviour
 {
@@ -21,14 +22,14 @@ public class UINetworkClientError : MonoBehaviour
         BaseNetworkGameManager.onClientError += OnClientError;
     }
 
-    public void OnClientError(int error)
+    public void OnClientError(SocketError error)
     {
         if (messageDialog == null)
             return;
 
-        switch ((NetworkError)error)
+        switch (error)
         {
-            case NetworkError.NoResources:
+            case SocketError.ConnectionRefused:
                 if (!string.IsNullOrEmpty(roomFullMessage))
                     messageDialog.Show(roomFullMessage);
                 break;

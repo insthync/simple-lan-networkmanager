@@ -1,7 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
+using System.Net;
+using System.Net.Sockets;
+using LiteNetLib;
+using LiteNetLib.Utils;
 
 public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 {
@@ -9,7 +13,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         get { return singleton as BaseNetworkGameManager; }
     }
-    public static event System.Action<int> onClientError;
+    public static event System.Action<SocketError> onClientError;
 
     public BaseNetworkGameRule gameRule;
     protected float updateScoreTime;
@@ -49,9 +53,9 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     protected override void Update()
     {
         base.Update();
-        if (NetworkServer.active)
+        if (IsServer)
             ServerUpdate();
-        if (NetworkClient.active)
+        if (IsClient)
             ClientUpdate();
     }
 
@@ -66,7 +70,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             {
                 var msgSendScores = new OpMsgSendScores();
                 msgSendScores.scores = GetSortedScores();
-                NetworkServer.SendToAll(msgSendScores.OpId, msgSendScores);
+                ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
             }
             updateScoreTime = Time.unscaledTime;
         }
@@ -77,7 +81,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             var msgMatchStatus = new OpMsgMatchStatus();
             msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
             msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
-            NetworkServer.SendToAll(msgMatchStatus.OpId, msgMatchStatus);
+            ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
 
             if (!IsMatchEnded && gameRule.IsMatchEnded)
             {
@@ -96,14 +100,14 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     public void SendKillNotify(string killerName, string victimName, string weaponId)
     {
-        if (!NetworkServer.active)
+        if (!IsServer)
             return;
 
         var msgKillNotify = new OpMsgKillNotify();
         msgKillNotify.killerName = killerName;
         msgKillNotify.victimName = victimName;
         msgKillNotify.weaponId = weaponId;
-        NetworkServer.SendToAll(msgKillNotify.OpId, msgKillNotify);
+        ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgKillNotify.OpId, msgKillNotify);
     }
 
     public NetworkGameScore[] GetSortedScores()
@@ -120,7 +124,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         {
             var character = Characters[i];
             var ranking = new NetworkGameScore();
-            ranking.netId = character.netId;
+            ranking.netId = character.ObjectId;
             ranking.playerName = character.playerName;
             ranking.score = character.Score;
             ranking.killCount = character.KillCount;
@@ -159,44 +163,49 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             gameRule.OnUpdateCharacter(character);
     }
 
-    public override void OnStartClient(NetworkClient client)
+    public override void OnStartClient(LiteNetLibClient client)
     {
         base.OnStartClient(client);
-        client.RegisterHandler(new OpMsgSendScores().OpId, ReadMsgSendScores);
-        client.RegisterHandler(new OpMsgGameRule().OpId, ReadMsgGameRule);
-        client.RegisterHandler(new OpMsgMatchStatus().OpId, ReadMsgMatchStatus);
-        client.RegisterHandler(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
         if (gameRule != null)
             gameRule.InitialClientObjects(client);
     }
 
-    public override void OnClientError(NetworkConnection conn, int errorCode)
+    protected override void RegisterClientMessages()
     {
-        base.OnClientError(conn, errorCode);
-        if (onClientError != null)
-            onClientError(errorCode);
+        base.RegisterClientMessages();
+        RegisterClientMessage(new OpMsgSendScores().OpId, ReadMsgSendScores);
+        RegisterClientMessage(new OpMsgGameRule().OpId, ReadMsgGameRule);
+        RegisterClientMessage(new OpMsgMatchStatus().OpId, ReadMsgMatchStatus);
+        RegisterClientMessage(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
     }
 
-    protected void ReadMsgSendScores(NetworkMessage netMsg)
+    public override void OnClientNetworkError(IPEndPoint endPoint, SocketError socketError)
     {
-        var msg = netMsg.ReadMessage<OpMsgSendScores>();
+        base.OnClientNetworkError(endPoint, socketError);
+        if (onClientError != null)
+            onClientError.Invoke(socketError);
+    }
+
+    protected void ReadMsgSendScores(LiteNetLibMessageHandler messageHandler)
+    {
+        var msg = messageHandler.ReadMessage<OpMsgSendScores>();
         UpdateScores(msg.scores);
     }
 
-    protected void ReadMsgGameRule(NetworkMessage netMsg)
+    protected void ReadMsgGameRule(LiteNetLibMessageHandler messageHandler)
     {
-        var msg = netMsg.ReadMessage<OpMsgGameRule>();
+        var msg = messageHandler.ReadMessage<OpMsgGameRule>();
         BaseNetworkGameRule foundGameRule;
         if (BaseNetworkGameInstance.GameRules.TryGetValue(msg.gameRuleName, out foundGameRule))
         {
             gameRule = foundGameRule;
-            gameRule.InitialClientObjects(client);
+            gameRule.InitialClientObjects(Client);
         }
     }
 
-    protected void ReadMsgMatchStatus(NetworkMessage netMsg)
+    protected void ReadMsgMatchStatus(LiteNetLibMessageHandler messageHandler)
     {
-        var msg = netMsg.ReadMessage<OpMsgMatchStatus>();
+        var msg = messageHandler.ReadMessage<OpMsgMatchStatus>();
         RemainsMatchTime = msg.remainsMatchTime;
         if (!IsMatchEnded && msg.isMatchEnded)
         {
@@ -205,48 +214,65 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    protected void ReadMsgKillNotify(NetworkMessage netMsg)
+    protected void ReadMsgKillNotify(LiteNetLibMessageHandler messageHandler)
     {
-        var msg = netMsg.ReadMessage<OpMsgKillNotify>();
+        var msg = messageHandler.ReadMessage<OpMsgKillNotify>();
         KillNotify(msg.killerName, msg.victimName, msg.weaponId);
     }
 
-    public override void OnServerReady(NetworkConnection conn)
+    protected override void HandleClientReady(LiteNetLibMessageHandler messageHandler)
     {
-        base.OnServerReady(conn);
+        base.HandleClientReady(messageHandler);
         if (gameRule == null || !gameRule.IsMatchEnded)
         {
             var msgSendScores = new OpMsgSendScores();
             msgSendScores.scores = GetSortedScores();
-            NetworkServer.SendToClient(conn.connectionId, msgSendScores.OpId, msgSendScores);
+            ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
         }
         if (gameRule != null)
         {
             var msgGameRule = new OpMsgGameRule();
             msgGameRule.gameRuleName = gameRule.name;
-            NetworkServer.SendToClient(conn.connectionId, msgGameRule.OpId, msgGameRule);
+            ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgGameRule.OpId, msgGameRule);
             var msgMatchTime = new OpMsgMatchStatus();
             msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
             msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
-            NetworkServer.SendToClient(conn.connectionId, msgMatchTime.OpId, msgMatchTime);
+            ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
         }
     }
 
-    public override void OnServerAddPlayer(NetworkConnection conn, short playerControllerId, NetworkReader extraMessageReader)
+    public override void SerializeClientReadyExtra(NetDataWriter writer)
     {
-        var character = NewCharacter(extraMessageReader);
+        base.SerializeClientReadyExtra(writer);
+        PrepareCharacter(writer);
+    }
+
+    public override void DeserializeClientReadyExtra(LiteNetLibIdentity playerIdentity, long connectionId, NetDataReader reader)
+    {
+        base.DeserializeClientReadyExtra(playerIdentity, connectionId, reader);
+        var character = NewCharacter(reader);
         if (character == null)
         {
-            Debug.LogError("Cannot create new character for player " + conn.connectionId);
+            Debug.LogError("Cannot create new character for player " + connectionId);
             return;
         }
-        NetworkServer.AddPlayerForConnection(conn, character.gameObject, playerControllerId);
+        Assets.NetworkSpawn(character.gameObject, 0, connectionId);
         RegisterCharacter(character);
     }
 
-    public override void OnServerDisconnect(NetworkConnection conn)
+    public override void OnPeerDisconnected(long connectionId, DisconnectInfo disconnectInfo)
     {
-        DestroyPlayersForConnection(conn);
+        LiteNetLibPlayer player;
+        if (Players.TryGetValue(connectionId, out player))
+        {
+            foreach (var spawnedObject in player.GetSpawnedObjects())
+            {
+                var character = spawnedObject.GetComponent<BaseNetworkGameCharacter>();
+                if (character != null)
+                    Characters.Remove(character);
+            }
+        }
+        base.OnPeerDisconnected(connectionId, disconnectInfo);
     }
 
     public override void OnStopServer()
@@ -255,31 +281,19 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         Characters.Clear();
     }
 
-    public void DestroyPlayersForConnection(NetworkConnection conn)
+    public override void OnClientOnlineSceneLoaded()
     {
-        var playerControllers = conn.playerControllers;
-        foreach (var playerController in playerControllers)
-        {
-            var character = playerController.gameObject.GetComponent<BaseNetworkGameCharacter>();
-            if (character != null)
-                Characters.Remove(character);
-        }
-        NetworkServer.DestroyPlayersForConnection(conn);
-    }
-
-    public override void OnClientSceneChanged(NetworkConnection conn)
-    {
-        base.OnClientSceneChanged(conn);
+        base.OnClientOnlineSceneLoaded();
         if (gameRule != null)
-            gameRule.InitialClientObjects(client);
+            gameRule.InitialClientObjects(Client);
     }
 
-    public override void OnServerSceneChanged(string sceneName)
+    public override void OnServerOnlineSceneLoaded()
     {
-        base.OnServerSceneChanged(sceneName);
+        base.OnServerOnlineSceneLoaded();
         canUpdateGameRule = true;
-        if (gameRule != null && client != null)
-            gameRule.InitialClientObjects(client);
+        if (gameRule != null && Client != null)
+            gameRule.InitialClientObjects(Client);
     }
 
     public override void OnStartServer()
@@ -294,10 +308,20 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         IsMatchEnded = false;
         MatchEndedAt = 0f;
         // If online scene == offline scene or online scene is empty assume that it can update game rule immediately
-        canUpdateGameRule = (string.IsNullOrEmpty(onlineScene) || offlineScene.Equals(onlineScene));
+        canUpdateGameRule = (string.IsNullOrEmpty(Assets.onlineScene.SceneName) || Assets.offlineScene.SceneName.Equals(Assets.onlineScene.SceneName));
     }
 
-    protected abstract BaseNetworkGameCharacter NewCharacter(NetworkReader extraMessageReader);
+    /// <summary>
+    /// Prepare character at client
+    /// </summary>
+    /// <param name="writer"></param>
+    protected abstract void PrepareCharacter(NetDataWriter writer);
+    /// <summary>
+    /// Create new character at server
+    /// </summary>
+    /// <param name="reader"></param>
+    /// <returns></returns>
+    protected abstract BaseNetworkGameCharacter NewCharacter(NetDataReader reader);
     protected abstract void UpdateScores(NetworkGameScore[] scores);
     protected abstract void KillNotify(string killerName, string victimName, string weaponId);
 }

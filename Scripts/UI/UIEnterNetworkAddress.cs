@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
 using UnityEngine.UI;
 
 public class UIEnterNetworkAddress : UIBase
@@ -16,7 +16,7 @@ public class UIEnterNetworkAddress : UIBase
 
     public virtual void OnClickConnect()
     {
-        var networkManager = NetworkManager.singleton;
+        var networkManager = SimpleLanNetworkManager.Singleton;
         networkManager.networkAddress = inputAddress.text;
         networkManager.networkPort = int.Parse(inputPort.text);
         networkManager.StartClient();

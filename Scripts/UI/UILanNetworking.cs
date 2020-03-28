@@ -7,31 +7,37 @@ public class UILanNetworking : UIBase
     public UILanNetworkingEntry entryPrefab;
     public Transform gameListContainer;
     private readonly Dictionary<string, UILanNetworkingEntry> entries = new Dictionary<string, UILanNetworkingEntry>();
-
+    private SimpleLanNetworkDiscovery discovery;
+    
     private void OnEnable()
     {
-        SimpleLanNetworkDiscovery.onReceivedBroadcast += OnReceivedBroadcast;
+        if (discovery != null)
+            discovery = FindObjectOfType<SimpleLanNetworkDiscovery>();
+        if (discovery != null)
+            discovery.onReceivedBroadcast += OnReceivedBroadcast;
     }
 
     private void OnDisable()
     {
-        SimpleLanNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
+        if (discovery != null)
+            discovery.onReceivedBroadcast -= OnReceivedBroadcast;
     }
 
     private void OnDestroy()
     {
-        SimpleLanNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
+        if (discovery != null)
+            discovery.onReceivedBroadcast -= OnReceivedBroadcast;
     }
 
-    private void OnReceivedBroadcast(string fromAddress, string data)
+    private void OnReceivedBroadcast(System.Net.IPEndPoint fromAddress, string data)
     {
-        Debug.Log("fromAddress " + fromAddress + " data " + data);
+        Debug.Log("OnReceivedBroadcast data " + data);
         var discoveryData = JsonUtility.FromJson<NetworkDiscoveryData>(data);
-        var key = fromAddress + "-" + discoveryData.networkPort;
+        var key = discoveryData.networkAddress + "-" + discoveryData.networkPort;
         if (!entries.ContainsKey(key))
         {
             var newEntry = Instantiate(entryPrefab, gameListContainer);
-            newEntry.SetData(fromAddress, discoveryData);
+            newEntry.SetData(discoveryData.networkAddress, discoveryData);
             newEntry.gameObject.SetActive(true);
             entries.Add(key, newEntry);
         }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
 
 public abstract class BaseNetworkGameRule : ScriptableObject
 {
@@ -71,7 +71,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             var character = NewBot();
             if (character == null)
                 continue;
-            NetworkServer.Spawn(character.gameObject);
+            networkManager.Assets.NetworkSpawn(character.gameObject);
             networkManager.RegisterCharacter(character);
         }
     }
@@ -126,5 +126,5 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         }
     }
 
-    public abstract void InitialClientObjects(NetworkClient client);
+    public abstract void InitialClientObjects(LiteNetLibClient client);
 }

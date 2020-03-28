@@ -1,14 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
 
-public class SimpleLanNetworkDiscovery : NetworkDiscovery
+public class SimpleLanNetworkDiscovery : LiteNetLibDiscovery
 {
-    public static System.Action<string, string> onReceivedBroadcast;
-    public override void OnReceivedBroadcast(string fromAddress, string data)
-    {
-        if (onReceivedBroadcast != null)
-            onReceivedBroadcast(fromAddress, data);
-    }
 }

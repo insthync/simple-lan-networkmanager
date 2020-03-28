@@ -68,8 +68,8 @@ public abstract class BaseNetworkGameInstance : MonoBehaviour
             manager.networkPort = ReadArgsInt(args, ARG_SERVER_PORT, serverPort);
             var maxConnections = manager.maxConnections;
             manager.maxConnections = ReadArgsInt(args, ARG_SERVER_MAX_CONNECTIONS, maxConnections);
-            var onlineScene = manager.onlineScene;
-            manager.onlineScene = ReadArgs(args, ARG_SERVER_GAME_ONLINE_SCENE, onlineScene);
+            var onlineScene = manager.Assets.onlineScene.SceneName;
+            manager.Assets.onlineScene.SceneName = ReadArgs(args, ARG_SERVER_GAME_ONLINE_SCENE, onlineScene);
 
             var gameRule = manager.gameRule;
             if (GameRules.Count > 0)

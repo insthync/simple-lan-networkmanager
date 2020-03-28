@@ -34,6 +34,7 @@ public class UILanNetworkingEntry : MonoBehaviour
         networkManager.networkAddress = _networkAddress;
         networkManager.networkPort = _data.networkPort;
         networkManager.StartClient();
-        networkManager.NetworkDiscovery.StopBroadcast();
+        networkManager.NetworkDiscovery.StopClient();
+        networkManager.NetworkDiscovery.StopServer();
     }
 }

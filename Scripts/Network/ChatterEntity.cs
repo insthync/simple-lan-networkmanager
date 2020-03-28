@@ -1,10 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
 using UnityEngine.UI;
 
-public class ChatterEntity : NetworkBehaviour
+public class ChatterEntity : LiteNetLibBehaviour
 {
     public static ChatterEntity Local { get; private set; }
     [Header("Chat Bubble")]
@@ -19,11 +19,6 @@ public class ChatterEntity : NetworkBehaviour
     private float lastShowEmoticonTime;
     private GameObject lastShowEmoticon;
 
-    public override void OnStartLocalPlayer()
-    {
-        Local = this;
-    }
-
     private void Awake()
     {
         if (chatBubbleRoot != null)
@@ -31,6 +26,12 @@ public class ChatterEntity : NetworkBehaviour
 
         if (lastShowEmoticon != null)
             lastShowEmoticon.SetActive(false);
+    }
+
+    private void Start()
+    {
+        if (IsOwnerClient)
+            Local = this;
     }
 
     private void Update()
@@ -49,14 +50,24 @@ public class ChatterEntity : NetworkBehaviour
         }
     }
 
-    [Command]
     public void CmdSendChat(string message)
+    {
+        CallNetFunction(NetFuncSendChat, FunctionReceivers.Server, message);
+    }
+
+    [NetFunction]
+    protected void NetFuncSendChat(string message)
     {
         RpcShowChat(message);
     }
 
-    [ClientRpc]
     public void RpcShowChat(string message)
+    {
+        CallNetFunction(NetFuncShowChat, FunctionReceivers.All, message);
+    }
+
+    [NetFunction]
+    protected void NetFuncShowChat(string message)
     {
         // Set chat text and show chat bubble
         if (chatBubbleText != null)
@@ -70,14 +81,24 @@ public class ChatterEntity : NetworkBehaviour
         // TODO: Add chat message to chat history (maybe in any network manager)
     }
 
-    [Command]
     public void CmdSendEmoticon(int id)
+    {
+        CallNetFunction(NetFuncSendEmoticon, FunctionReceivers.Server, id);
+    }
+
+    [NetFunction]
+    protected void NetFuncSendEmoticon(int id)
     {
         RpcShowEmoticon(id);
     }
 
-    [ClientRpc]
     public void RpcShowEmoticon(int id)
+    {
+        CallNetFunction(NetFuncShowEmoticon, FunctionReceivers.All, id);
+    }
+
+    [NetFunction]
+    protected void NetFuncShowEmoticon(int id)
     {
         if (id < 0 || id >= emoticons.Length)
             return;
