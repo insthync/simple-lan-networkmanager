@@ -126,4 +126,5 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     }
 
     public abstract void InitialClientObjects(LiteNetLibClient client);
+    public abstract void RegisterPrefabs();
 }

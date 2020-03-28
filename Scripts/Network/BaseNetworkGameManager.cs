@@ -14,7 +14,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         get { return singleton as BaseNetworkGameManager; }
     }
     public static event System.Action<DisconnectInfo> onClientDisconnected;
-
+    
     public BaseNetworkGameRule gameRule;
     protected float updateScoreTime;
     protected float updateMatchTime;
@@ -163,11 +163,15 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             gameRule.OnUpdateCharacter(character);
     }
 
-    public override void OnStartClient(LiteNetLibClient client)
+    public override void OnStartServer()
     {
-        base.OnStartClient(client);
-        if (gameRule != null)
-            gameRule.InitialClientObjects(client);
+        base.OnStartServer();
+        updateScoreTime = 0f;
+        updateMatchTime = 0f;
+        RemainsMatchTime = 0f;
+        IsMatchEnded = false;
+        MatchEndedAt = 0f;
+        canUpdateGameRule = false;
     }
 
     protected override void RegisterClientMessages()
@@ -179,13 +183,6 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         RegisterClientMessage(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
     }
 
-    public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
-    {
-        base.OnClientDisconnected(disconnectInfo);
-        if (onClientDisconnected != null)
-            onClientDisconnected.Invoke(disconnectInfo);
-    }
-
     protected void ReadMsgSendScores(LiteNetLibMessageHandler messageHandler)
     {
         var msg = messageHandler.ReadMessage<OpMsgSendScores>();
@@ -194,6 +191,8 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     protected void ReadMsgGameRule(LiteNetLibMessageHandler messageHandler)
     {
+        if (IsServer)
+            return;
         var msg = messageHandler.ReadMessage<OpMsgGameRule>();
         BaseNetworkGameRule foundGameRule;
         if (BaseNetworkGameInstance.GameRules.TryGetValue(msg.gameRuleName, out foundGameRule))
@@ -222,7 +221,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     protected override void HandleClientReady(LiteNetLibMessageHandler messageHandler)
     {
-        base.HandleClientReady(messageHandler);
+        // Send game rule data before spawn player's character
         if (gameRule == null || !gameRule.IsMatchEnded)
         {
             var msgSendScores = new OpMsgSendScores();
@@ -239,6 +238,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
             ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
         }
+        base.HandleClientReady(messageHandler);
     }
 
     public override void SerializeClientReadyExtra(NetDataWriter writer)
@@ -258,6 +258,13 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
         Assets.NetworkSpawn(character.gameObject, 0, connectionId);
         RegisterCharacter(character);
+    }
+
+    public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
+    {
+        base.OnClientDisconnected(disconnectInfo);
+        if (onClientDisconnected != null)
+            onClientDisconnected.Invoke(disconnectInfo);
     }
 
     public override void OnPeerDisconnected(long connectionId, DisconnectInfo disconnectInfo)
@@ -281,34 +288,33 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         Characters.Clear();
     }
 
+    protected void RegisterGamerulePrefabs()
+    {
+        foreach (var gameRule in BaseNetworkGameInstance.GameRules.Values)
+        {
+            if (gameRule == null) continue;
+            gameRule.RegisterPrefabs();
+        }
+    }
+
     public override void OnClientOnlineSceneLoaded()
     {
         base.OnClientOnlineSceneLoaded();
-        if (gameRule != null)
-            gameRule.InitialClientObjects(Client);
+        RegisterGamerulePrefabs();
+        // Scene loaded, then the client will send ready message to server
     }
 
     public override void OnServerOnlineSceneLoaded()
     {
         base.OnServerOnlineSceneLoaded();
-        canUpdateGameRule = true;
-        if (gameRule != null && Client != null)
-            gameRule.InitialClientObjects(Client);
-    }
-
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
+        RegisterGamerulePrefabs();
         if (gameRule != null)
+        {
             gameRule.OnStartServer();
-
-        updateScoreTime = 0f;
-        updateMatchTime = 0f;
-        RemainsMatchTime = 0f;
-        IsMatchEnded = false;
-        MatchEndedAt = 0f;
-        // If online scene == offline scene or online scene is empty assume that it can update game rule immediately
-        canUpdateGameRule = (string.IsNullOrEmpty(Assets.onlineScene.SceneName) || Assets.offlineScene.SceneName.Equals(Assets.onlineScene.SceneName));
+            if (IsClient)
+                gameRule.InitialClientObjects(Client);
+        }
+        canUpdateGameRule = true;
     }
 
     /// <summary>
