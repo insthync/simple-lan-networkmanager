@@ -52,22 +52,22 @@ public class ChatterEntity : LiteNetLibBehaviour
 
     public void CmdSendChat(string message)
     {
-        CallNetFunction(NetFuncSendChat, FunctionReceivers.Server, message);
+        CallNetFunction(_CmdSendChat, FunctionReceivers.Server, message);
     }
 
     [NetFunction]
-    protected void NetFuncSendChat(string message)
+    protected void _CmdSendChat(string message)
     {
         RpcShowChat(message);
     }
 
     public void RpcShowChat(string message)
     {
-        CallNetFunction(NetFuncShowChat, FunctionReceivers.All, message);
+        CallNetFunction(_RpcShowChat, FunctionReceivers.All, message);
     }
 
     [NetFunction]
-    protected void NetFuncShowChat(string message)
+    protected void _RpcShowChat(string message)
     {
         // Set chat text and show chat bubble
         if (chatBubbleText != null)
@@ -83,22 +83,22 @@ public class ChatterEntity : LiteNetLibBehaviour
 
     public void CmdSendEmoticon(int id)
     {
-        CallNetFunction(NetFuncSendEmoticon, FunctionReceivers.Server, id);
+        CallNetFunction(_CmdSendEmoticon, FunctionReceivers.Server, id);
     }
 
     [NetFunction]
-    protected void NetFuncSendEmoticon(int id)
+    protected void _CmdSendEmoticon(int id)
     {
         RpcShowEmoticon(id);
     }
 
     public void RpcShowEmoticon(int id)
     {
-        CallNetFunction(NetFuncShowEmoticon, FunctionReceivers.All, id);
+        CallNetFunction(_RpcShowEmoticon, FunctionReceivers.All, id);
     }
 
     [NetFunction]
-    protected void NetFuncShowEmoticon(int id)
+    protected void _RpcShowEmoticon(int id)
     {
         if (id < 0 || id >= emoticons.Length)
             return;
