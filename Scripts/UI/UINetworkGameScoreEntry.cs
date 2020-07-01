@@ -16,7 +16,7 @@ public class UINetworkGameScoreEntry : MonoBehaviour
     public void SetData(int rank, NetworkGameScore ranking)
     {
         Clear();
-        if (ranking.Equals(NetworkGameScore.Empty) || ranking.netId.IsEmpty())
+        if (ranking.Equals(NetworkGameScore.Empty) || ranking.netId == 0)
             return;
         if (textRank != null)
             textRank.text = "#" + rank;
@@ -31,7 +31,7 @@ public class UINetworkGameScoreEntry : MonoBehaviour
         if (textDieCount != null)
             textDieCount.text = ranking.killCount.ToString("N0");
 
-        var isLocal = BaseNetworkGameCharacter.Local != null && ranking.netId.Equals(BaseNetworkGameCharacter.Local.netId);
+        var isLocal = BaseNetworkGameCharacter.Local != null && ranking.netId.Equals(BaseNetworkGameCharacter.Local.ObjectId);
         SetTextColor(isLocal, textRank);
         SetTextColor(isLocal, textName);
         SetTextColor(isLocal, textScore);

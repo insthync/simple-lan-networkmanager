@@ -14,7 +14,7 @@ public class UINetworkGameScores : MonoBehaviour
         for (; i < rankings.Length; ++i)
         {
             var ranking = rankings[i];
-            if (!ranking.netId.IsEmpty())
+            if (ranking.netId > 0)
             {
                 if (i < userRankings.Length)
                 {
@@ -22,7 +22,7 @@ public class UINetworkGameScores : MonoBehaviour
                     userRanking.SetData(j + 1, ranking);
                 }
 
-                var isLocal = BaseNetworkGameCharacter.Local != null && ranking.netId.Equals(BaseNetworkGameCharacter.Local.netId);
+                var isLocal = BaseNetworkGameCharacter.Local != null && ranking.netId.Equals(BaseNetworkGameCharacter.Local.ObjectId);
                 if (isLocal)
                     UpdateLocalRank(j + 1, ranking);
                 ++j;

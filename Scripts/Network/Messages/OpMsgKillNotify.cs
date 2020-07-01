@@ -1,11 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
+using LiteNetLib.Utils;
 
 public class OpMsgKillNotify : BaseOpMsg
 {
-    public override short OpId
+    public override ushort OpId
     {
         get
         {
@@ -16,4 +17,18 @@ public class OpMsgKillNotify : BaseOpMsg
     public string killerName;
     public string victimName;
     public string weaponId;
+
+    public override void Deserialize(NetDataReader reader)
+    {
+        killerName = reader.GetString();
+        victimName = reader.GetString();
+        weaponId = reader.GetString();
+    }
+
+    public override void Serialize(NetDataWriter writer)
+    {
+        writer.Put(killerName);
+        writer.Put(victimName);
+        writer.Put(weaponId);
+    }
 }

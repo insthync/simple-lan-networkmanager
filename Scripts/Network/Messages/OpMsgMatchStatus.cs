@@ -1,10 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using LiteNetLib.Utils;
 using UnityEngine;
 
 public class OpMsgMatchStatus : BaseOpMsg
 {
-    public override short OpId
+    public override ushort OpId
     {
         get
         {
@@ -14,4 +15,16 @@ public class OpMsgMatchStatus : BaseOpMsg
 
     public float remainsMatchTime;
     public bool isMatchEnded;
+
+    public override void Deserialize(NetDataReader reader)
+    {
+        remainsMatchTime = reader.GetFloat();
+        isMatchEnded = reader.GetBool();
+    }
+
+    public override void Serialize(NetDataWriter writer)
+    {
+        writer.Put(remainsMatchTime);
+        writer.Put(isMatchEnded);
+    }
 }

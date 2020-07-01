@@ -1,6 +1,11 @@
-﻿using UnityEngine.Networking;
+﻿using LiteNetLib.Utils;
+using LiteNetLibManager;
 
-public abstract class BaseOpMsg : MessageBase
+public abstract class BaseOpMsg : INetSerializable
 {
-    public abstract short OpId { get; }
+    public abstract ushort OpId { get; }
+
+    public abstract void Deserialize(NetDataReader reader);
+
+    public abstract void Serialize(NetDataWriter writer);
 }

@@ -1,37 +1,53 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using LiteNetLibManager;
 
 public class UILanNetworking : UIBase
 {
     public UILanNetworkingEntry entryPrefab;
     public Transform gameListContainer;
     private readonly Dictionary<string, UILanNetworkingEntry> entries = new Dictionary<string, UILanNetworkingEntry>();
+    private LiteNetLibDiscovery discovery;
 
     private void OnEnable()
     {
-        SimpleLanNetworkDiscovery.onReceivedBroadcast += OnReceivedBroadcast;
+        if (discovery == null)
+            discovery = FindObjectOfType<LiteNetLibDiscovery>();
+        if (discovery != null)
+        {
+            discovery.onReceivedBroadcast += OnReceivedBroadcast;
+            discovery.StartClient();
+        }
     }
 
     private void OnDisable()
     {
-        SimpleLanNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
+        if (discovery != null)
+        {
+            discovery.onReceivedBroadcast -= OnReceivedBroadcast;
+            discovery.StopClient();
+        }
     }
 
     private void OnDestroy()
     {
-        SimpleLanNetworkDiscovery.onReceivedBroadcast -= OnReceivedBroadcast;
+        if (discovery != null)
+        {
+            discovery.onReceivedBroadcast -= OnReceivedBroadcast;
+            discovery.StopClient();
+        }
     }
 
-    private void OnReceivedBroadcast(string fromAddress, string data)
+    private void OnReceivedBroadcast(System.Net.IPEndPoint fromAddress, string data)
     {
-        Debug.Log("fromAddress " + fromAddress + " data " + data);
+        Debug.Log("OnReceivedBroadcast data " + data);
         var discoveryData = JsonUtility.FromJson<NetworkDiscoveryData>(data);
-        var key = fromAddress + "-" + discoveryData.networkPort;
+        var key = discoveryData.networkAddress + "-" + discoveryData.networkPort;
         if (!entries.ContainsKey(key))
         {
             var newEntry = Instantiate(entryPrefab, gameListContainer);
-            newEntry.SetData(fromAddress, discoveryData);
+            newEntry.SetData(discoveryData.networkAddress, discoveryData);
             newEntry.gameObject.SetActive(true);
             entries.Add(key, newEntry);
         }
@@ -52,7 +68,11 @@ public class UILanNetworking : UIBase
             Destroy(child.gameObject);
         }
         entries.Clear();
-        SimpleLanNetworkManager.Singleton.FindLanHosts();
+        if (discovery != null)
+        {
+            discovery.StopClient();
+            discovery.StartClient();
+        }
     }
 
     public override void Show()

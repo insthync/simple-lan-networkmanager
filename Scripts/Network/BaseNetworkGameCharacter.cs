@@ -1,21 +1,21 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using LiteNetLibManager;
 
-public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.IComparable<BaseNetworkGameCharacter>
+public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.IComparable<BaseNetworkGameCharacter>
 {
     public static BaseNetworkGameCharacter Local { get; private set; }
 
-    [SyncVar]
+    [SyncField]
     public string playerName;
-    [SyncVar]
+    [SyncField]
     public int score;
-    [SyncVar]
+    [SyncField]
     public int killCount;
-    [SyncVar]
+    [SyncField]
     public int assistCount;
-    [SyncVar]
+    [SyncField]
     public int dieCount;
 
     public abstract bool IsDead { get; }
@@ -76,21 +76,18 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
         return true;
     }
 
+    public override void OnStartOwnerClient()
+    {
+        if (Local != null)
+            return;
+        Local = this;
+        NetworkManager = Manager as BaseNetworkGameManager;
+    }
+
     protected virtual void Update()
     {
         if (NetworkManager != null)
             NetworkManager.OnUpdateCharacter(this);
-    }
-
-    public override void OnStartLocalPlayer()
-    {
-        base.OnStartLocalPlayer();
-
-        if (Local != null)
-            return;
-
-        Local = this;
-        NetworkManager = FindObjectOfType<BaseNetworkGameManager>();
     }
 
     public void ResetScore()
@@ -115,6 +112,6 @@ public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.ICompa
 
     public int CompareTo(BaseNetworkGameCharacter other)
     {
-        return ((-1 * Score.CompareTo(other.Score)) * 10) + netId.Value.CompareTo(other.netId.Value);
+        return Score.CompareTo(other.Score) * -10;
     }
 }
