@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Cysharp.Threading.Tasks;
 
 public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 {
@@ -14,7 +15,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         get { return singleton as BaseNetworkGameManager; }
     }
     public static event System.Action<DisconnectInfo> onClientDisconnected;
-    
+
     public BaseNetworkGameRule gameRule;
     protected float updateScoreTime;
     protected float updateMatchTime;
@@ -183,13 +184,13 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         RegisterClientMessage(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
     }
 
-    protected void ReadMsgSendScores(LiteNetLibMessageHandler messageHandler)
+    protected void ReadMsgSendScores(MessageHandlerData messageHandler)
     {
         var msg = messageHandler.ReadMessage<OpMsgSendScores>();
         UpdateScores(msg.scores);
     }
 
-    protected void ReadMsgGameRule(LiteNetLibMessageHandler messageHandler)
+    protected void ReadMsgGameRule(MessageHandlerData messageHandler)
     {
         if (IsServer)
             return;
@@ -202,7 +203,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    protected void ReadMsgMatchStatus(LiteNetLibMessageHandler messageHandler)
+    protected void ReadMsgMatchStatus(MessageHandlerData messageHandler)
     {
         var msg = messageHandler.ReadMessage<OpMsgMatchStatus>();
         RemainsMatchTime = msg.remainsMatchTime;
@@ -213,51 +214,52 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    protected void ReadMsgKillNotify(LiteNetLibMessageHandler messageHandler)
+    protected void ReadMsgKillNotify(MessageHandlerData messageHandler)
     {
         var msg = messageHandler.ReadMessage<OpMsgKillNotify>();
         KillNotify(msg.killerName, msg.victimName, msg.weaponId);
     }
 
-    protected override void HandleClientReady(LiteNetLibMessageHandler messageHandler)
+    protected override UniTaskVoid HandleClientReadyRequest(RequestHandlerData requestHandler, EmptyMessage request, RequestProceedResultDelegate<EmptyMessage> result)
     {
         // Send game rule data before spawn player's character
         if (gameRule == null || !gameRule.IsMatchEnded)
         {
             var msgSendScores = new OpMsgSendScores();
             msgSendScores.scores = GetSortedScores();
-            ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
+            ServerSendPacket(requestHandler.ConnectionId, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
         }
         if (gameRule != null)
         {
             var msgGameRule = new OpMsgGameRule();
             msgGameRule.gameRuleName = gameRule.name;
-            ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgGameRule.OpId, msgGameRule);
+            ServerSendPacket(requestHandler.ConnectionId, DeliveryMethod.ReliableOrdered, msgGameRule.OpId, msgGameRule);
             var msgMatchTime = new OpMsgMatchStatus();
             msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
             msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
-            ServerSendPacket(messageHandler.connectionId, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
+            ServerSendPacket(requestHandler.ConnectionId, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
         }
-        base.HandleClientReady(messageHandler);
+        return base.HandleClientReadyRequest(requestHandler, request, result);
     }
 
-    public override void SerializeClientReadyExtra(NetDataWriter writer)
+    public override void SerializeClientReadyData(NetDataWriter writer)
     {
-        base.SerializeClientReadyExtra(writer);
+        base.SerializeClientReadyData(writer);
         PrepareCharacter(writer);
     }
 
-    public override void DeserializeClientReadyExtra(LiteNetLibIdentity playerIdentity, long connectionId, NetDataReader reader)
+    public override async UniTask<bool> DeserializeClientReadyData(LiteNetLibIdentity playerIdentity, long connectionId, NetDataReader reader)
     {
-        base.DeserializeClientReadyExtra(playerIdentity, connectionId, reader);
+        await UniTask.Yield();
         var character = NewCharacter(reader);
         if (character == null)
         {
             Debug.LogError("Cannot create new character for player " + connectionId);
-            return;
+            return false;
         }
         Assets.NetworkSpawn(character.gameObject, 0, connectionId);
         RegisterCharacter(character);
+        return true;
     }
 
     public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
