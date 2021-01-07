@@ -103,7 +103,7 @@ public class SimpleLanNetworkManager : LiteNetLibGameManager
 
     public void StartHostAndQuitIfCannotListen()
     {
-        if (StartHost() == null)
+        if (!StartHost())
             Application.Quit();
     }
 
