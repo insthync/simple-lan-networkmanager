@@ -4,10 +4,10 @@ using LiteNetLibManager;
 
 public abstract class BaseNetworkGameRule : ScriptableObject
 {
-    public const string BotCountKey = "BotCount";
-    public const string MatchTimeKey = "MatchTime";
-    public const string MatchKillKey = "MatchKill";
-    public const string MatchScoreKey = "MatchScore";
+    public const string BotCountKey = "-gameBotCount";
+    public const string MatchTimeKey = "-gameMatchTime";
+    public const string MatchKillKey = "-gameMatchKill";
+    public const string MatchScoreKey = "-gameMatchScore";
 
     [SerializeField]
     private string title;
@@ -76,16 +76,12 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         }
     }
 
-    public virtual void ReadConfigs(Dictionary<string, string> configs)
+    public virtual void ReadConfigs(string[] args)
     {
-        if (configs.ContainsKey(BotCountKey))
-            int.TryParse(configs[BotCountKey], out botCount);
-        if (configs.ContainsKey(MatchTimeKey))
-            int.TryParse(configs[MatchTimeKey], out matchTime);
-        if (configs.ContainsKey(MatchKillKey))
-            int.TryParse(configs[MatchKillKey], out matchKill);
-        if (configs.ContainsKey(MatchScoreKey))
-            int.TryParse(configs[MatchScoreKey], out matchScore);
+        botCount = EnvironmentArgsUtils.ReadArgsInt(args, BotCountKey, defaultBotCount);
+        matchTime = EnvironmentArgsUtils.ReadArgsInt(args, MatchTimeKey, defaultMatchTime);
+        matchKill = EnvironmentArgsUtils.ReadArgsInt(args, MatchKillKey, defaultMatchKill);
+        matchScore = EnvironmentArgsUtils.ReadArgsInt(args, MatchScoreKey, defaultMatchScore);
     }
 
     public virtual void OnStartServer()
