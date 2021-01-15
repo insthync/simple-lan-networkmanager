@@ -76,7 +76,7 @@ public abstract class BaseNetworkGameInstance : MonoBehaviour
                 var gameRule = allGameRules[0];
                 var gameRuleName = EnvironmentArgsUtils.ReadArgs(args, ARG_SERVER_GAME_RULE);
                 if (!string.IsNullOrEmpty(gameRuleName) && GameRules.ContainsKey(gameRuleName))
-                    GameRules[gameRuleName] = gameRule;
+                    gameRule = GameRules[gameRuleName];
                 manager.gameRule = gameRule;
             }
 
