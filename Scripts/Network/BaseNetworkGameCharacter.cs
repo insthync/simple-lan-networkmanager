@@ -1,14 +1,15 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using LiteNetLibManager;
+﻿using LiteNetLibManager;
 
 public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.IComparable<BaseNetworkGameCharacter>
 {
     public static BaseNetworkGameCharacter Local { get; private set; }
+    public static uint LocalNetId { get { return Local ? Local.ObjectId : 0; } }
+    public static int LocalRank { get; set; }
 
     [SyncField]
     public string playerName;
+    [SyncField]
+    public byte playerTeam;
     [SyncField]
     public int score;
     [SyncField]
@@ -19,6 +20,8 @@ public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.ICo
     public int dieCount;
 
     public abstract bool IsDead { get; }
+    public abstract bool IsBot { get; }
+
     public int Score
     {
         get
@@ -81,6 +84,7 @@ public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.ICo
         if (Local != null)
             return;
         Local = this;
+        LocalRank = 0;
         NetworkManager = Manager as BaseNetworkGameManager;
     }
 

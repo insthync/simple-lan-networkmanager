@@ -7,6 +7,7 @@ public struct NetworkGameScore : INetSerializable
     public static readonly NetworkGameScore Empty = new NetworkGameScore();
     public uint netId;
     public string playerName;
+    public byte team;
     public int score;
     public int killCount;
     public int assistCount;
@@ -16,6 +17,7 @@ public struct NetworkGameScore : INetSerializable
     {
         netId = reader.GetPackedUInt();
         playerName = reader.GetString();
+        team = reader.GetByte();
         score = reader.GetPackedInt();
         killCount = reader.GetPackedInt();
         assistCount = reader.GetPackedInt();
@@ -26,6 +28,7 @@ public struct NetworkGameScore : INetSerializable
     {
         writer.PutPackedUInt(netId);
         writer.Put(playerName);
+        writer.Put(team);
         writer.PutPackedInt(score);
         writer.PutPackedInt(killCount);
         writer.PutPackedInt(assistCount);

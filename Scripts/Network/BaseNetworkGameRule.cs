@@ -15,26 +15,29 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     private string description;
     [SerializeField]
     private int defaultBotCount;
-    [HideInInspector]
+    [System.NonSerialized]
     public int botCount;
     [SerializeField, Tooltip("Time in seconds, 0 = Unlimit")]
     private int defaultMatchTime;
-    [HideInInspector]
+    [System.NonSerialized]
     public int matchTime;
     [SerializeField, Tooltip("Match kill limit, 0 = Unlimit")]
     private int defaultMatchKill;
-    [HideInInspector]
+    [System.NonSerialized]
     public int matchKill;
     [SerializeField, Tooltip("Match score limit, 0 = Unlimit")]
     private int defaultMatchScore;
-    [HideInInspector]
+    [System.NonSerialized]
     public int matchScore;
     protected float matchStartTime;
     protected bool isBotAdded;
+    protected int teamScoreA;
+    protected int teamScoreB;
+    protected int teamKillA;
+    protected int teamKillB;
     public string Title { get { return title; } }
     public string Description { get { return description; } }
     protected abstract BaseNetworkGameCharacter NewBot();
-    protected abstract void EndMatch();
     public int DefaultBotCount { get { return defaultBotCount; } }
     public int DefaultMatchTime { get { return defaultMatchTime; } }
     public int DefaultMatchKill { get { return defaultMatchKill; } }
@@ -43,12 +46,17 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public virtual bool HasOptionMatchTime { get { return false; } }
     public virtual bool HasOptionMatchKill { get { return false; } }
     public virtual bool HasOptionMatchScore { get { return false; } }
+    public virtual bool IsTeamGameplay { get { return false; } }
     public virtual bool ShowZeroScoreWhenDead { get { return false; } }
     public virtual bool ShowZeroKillCountWhenDead { get { return false; } }
     public virtual bool ShowZeroAssistCountWhenDead { get { return false; } }
     public virtual bool ShowZeroDieCountWhenDead { get { return false; ; } }
     public abstract bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams);
     public abstract bool RespawnCharacter(BaseNetworkGameCharacter character, params object[] extraParams);
+
+    protected readonly Dictionary<uint, int> CharacterCollectedScore = new Dictionary<uint, int>();
+    protected readonly Dictionary<uint, int> CharacterCollectedKill = new Dictionary<uint, int>();
+
     public float RemainsMatchTime
     {
         get
@@ -59,7 +67,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         }
     }
     public bool IsMatchEnded { get; protected set; }
-    public BaseNetworkGameManager networkManager { get { return BaseNetworkGameManager.Singleton; } }
+    public BaseNetworkGameManager NetworkManager { get { return BaseNetworkGameManager.Singleton; } }
 
     public virtual void AddBots()
     {
@@ -71,9 +79,20 @@ public abstract class BaseNetworkGameRule : ScriptableObject
             var character = NewBot();
             if (character == null)
                 continue;
-            networkManager.Assets.NetworkSpawn(character.gameObject);
-            networkManager.RegisterCharacter(character);
+            NetworkManager.Assets.NetworkSpawn(character.gameObject);
+            NetworkManager.RegisterCharacter(character);
         }
+    }
+
+    protected virtual List<BaseNetworkGameCharacter> GetBots()
+    {
+        List<BaseNetworkGameCharacter> result = new List<BaseNetworkGameCharacter>(FindObjectsOfType<BaseNetworkGameCharacter>());
+        for (int i = result.Count - 1; i >= 0; --i)
+        {
+            if (!result[i].IsBot)
+                result.RemoveAt(i);
+        }
+        return result;
     }
 
     public virtual void ReadConfigs(string[] args)
@@ -87,7 +106,20 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public virtual void OnStartServer()
     {
         matchStartTime = Time.unscaledTime;
-        isBotAdded = false;
+        teamScoreA = 0;
+        teamScoreB = 0;
+        teamKillA = 0;
+        teamKillB = 0;
+        IsMatchEnded = false;
+        AddBots();
+    }
+
+    public virtual void OnStopConnection()
+    {
+        teamScoreA = 0;
+        teamScoreB = 0;
+        teamKillA = 0;
+        teamKillB = 0;
         IsMatchEnded = false;
     }
 
@@ -102,22 +134,84 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !IsMatchEnded)
         {
             IsMatchEnded = true;
-            EndMatch();
+        }
+    }
+
+    public virtual void OnScoreIncrease(BaseNetworkGameCharacter character, int increaseAmount)
+    {
+        if (!CharacterCollectedScore.ContainsKey(character.ObjectId))
+            CharacterCollectedScore[character.ObjectId] = increaseAmount;
+        else
+            CharacterCollectedScore[character.ObjectId] += increaseAmount;
+
+        if (IsTeamGameplay)
+        {
+            // TODO: Improve team codes
+            switch (character.playerTeam)
+            {
+                case 1:
+                    teamScoreA += increaseAmount;
+                    break;
+                case 2:
+                    teamScoreB += increaseAmount;
+                    break;
+            }
+        }
+    }
+
+    public virtual void OnKillIncrease(BaseNetworkGameCharacter character, int increaseAmount)
+    {
+        if (!CharacterCollectedKill.ContainsKey(character.ObjectId))
+            CharacterCollectedKill[character.ObjectId] = increaseAmount;
+        else
+            CharacterCollectedKill[character.ObjectId] += increaseAmount;
+
+        if (IsTeamGameplay)
+        {
+            // TODO: Improve team codes
+            switch (character.playerTeam)
+            {
+                case 1:
+                    teamKillA += increaseAmount;
+                    break;
+                case 2:
+                    teamKillB += increaseAmount;
+                    break;
+            }
         }
     }
 
     public virtual void OnUpdateCharacter(BaseNetworkGameCharacter character)
     {
-        if (HasOptionMatchScore && matchScore > 0 && character.Score >= matchScore)
+        if (IsMatchEnded)
+            return;
+
+        int checkScore = character.Score;
+        int checkKill = character.KillCount;
+        if (IsTeamGameplay)
         {
-            IsMatchEnded = true;
-            EndMatch();
+            // Use team score / kill as checker
+            switch (character.playerTeam)
+            {
+                case 1:
+                    checkScore = teamScoreA;
+                    checkKill = teamKillA;
+                    break;
+                case 2:
+                    checkScore = teamScoreB;
+                    checkKill = teamKillB;
+                    break;
+            }
         }
 
-        if (HasOptionMatchKill && matchKill > 0 && character.KillCount >= matchKill)
+        if (HasOptionMatchScore && matchScore > 0 && checkScore >= matchScore)
         {
             IsMatchEnded = true;
-            EndMatch();
+        }
+
+        if (HasOptionMatchKill && matchKill > 0 && checkKill >= matchKill)
+        {
+            IsMatchEnded = true;
         }
     }
 

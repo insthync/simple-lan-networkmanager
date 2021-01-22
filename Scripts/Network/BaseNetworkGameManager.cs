@@ -57,43 +57,67 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             ClientUpdate();
     }
 
+    public override void OnPeerConnected(long connectionId)
+    {
+        base.OnPeerConnected(connectionId);
+        if (IsMatchEnded)
+        {
+            // Kick new connection while match is end
+            Server.Transport.ServerDisconnect(connectionId);
+        }
+    }
+
     protected virtual void ServerUpdate()
     {
         if (gameRule != null && canUpdateGameRule)
             gameRule.OnUpdate();
 
-        if (Time.unscaledTime - updateScoreTime >= 1f)
+        if (gameRule != null)
         {
-            if (gameRule == null || !gameRule.IsMatchEnded)
-            {
-                var msgSendScores = new OpMsgSendScores();
-                msgSendScores.scores = GetSortedScores();
-                ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
-            }
-            updateScoreTime = Time.unscaledTime;
-        }
-
-        if (gameRule != null && Time.unscaledTime - updateMatchTime >= 1f)
-        {
-            RemainsMatchTime = gameRule.RemainsMatchTime;
-            var msgMatchStatus = new OpMsgMatchStatus();
-            msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
-            msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
-            ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
+            gameRule.OnUpdate();
 
             if (!IsMatchEnded && gameRule.IsMatchEnded)
             {
+                UpdateMatchScores();
+                UpdateMatchStatus();
                 IsMatchEnded = true;
                 MatchEndedAt = Time.unscaledTime;
             }
 
-            updateMatchTime = Time.unscaledTime;
+            if (!IsMatchEnded && Time.unscaledTime - updateMatchTime >= 1f)
+            {
+                RemainsMatchTime = gameRule.RemainsMatchTime;
+                UpdateMatchStatus();
+                updateMatchTime = Time.unscaledTime;
+            }
+        }
+
+        if (!IsMatchEnded && Time.unscaledTime - updateScoreTime >= 1f)
+        {
+            if (gameRule == null || !gameRule.IsMatchEnded)
+                UpdateMatchScores();
+            updateScoreTime = Time.unscaledTime;
         }
     }
 
     protected virtual void ClientUpdate()
     {
 
+    }
+
+    protected void UpdateMatchScores()
+    {
+        var msgSendScores = new OpMsgSendScores();
+        msgSendScores.scores = GetSortedScores();
+        ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
+    }
+
+    protected void UpdateMatchStatus()
+    {
+        var msgMatchStatus = new OpMsgMatchStatus();
+        msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
+        msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
+        ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
     }
 
     public void SendKillNotify(string killerName, string victimName, string weaponId)
@@ -121,14 +145,17 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         for (var i = 0; i < Characters.Count; ++i)
         {
             var character = Characters[i];
-            var ranking = new NetworkGameScore();
-            ranking.netId = character.ObjectId;
-            ranking.playerName = character.playerName;
-            ranking.score = character.Score;
-            ranking.killCount = character.KillCount;
-            ranking.assistCount = character.AssistCount;
-            ranking.dieCount = character.DieCount;
-            scores[i] = ranking;
+            var score = new NetworkGameScore();
+            score.netId = character.ObjectId;
+            score.playerName = character.playerName;
+            score.team = character.playerTeam;
+            score.score = character.Score;
+            score.killCount = character.KillCount;
+            score.assistCount = character.AssistCount;
+            score.dieCount = character.DieCount;
+            if (score.netId == BaseNetworkGameCharacter.LocalNetId)
+                BaseNetworkGameCharacter.LocalRank = i + 1;
+            scores[i] = score;
         }
         return scores;
     }
@@ -155,9 +182,21 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         return true;
     }
 
-    public void OnUpdateCharacter(BaseNetworkGameCharacter character)
+    public virtual void OnScoreIncrease(BaseNetworkGameCharacter character, int increaseAmount)
     {
-        if (gameRule != null)
+        if (gameRule != null && Characters.Contains(character))
+            gameRule.OnScoreIncrease(character, increaseAmount);
+    }
+
+    public virtual void OnKillIncrease(BaseNetworkGameCharacter character, int increaseAmount)
+    {
+        if (gameRule != null && Characters.Contains(character))
+            gameRule.OnKillIncrease(character, increaseAmount);
+    }
+
+    public virtual void OnUpdateCharacter(BaseNetworkGameCharacter character)
+    {
+        if (gameRule != null && Characters.Contains(character))
             gameRule.OnUpdateCharacter(character);
     }
 
@@ -172,9 +211,9 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         canUpdateGameRule = false;
     }
 
-    protected override void RegisterClientMessages()
+    protected override void RegisterMessages()
     {
-        base.RegisterClientMessages();
+        base.RegisterMessages();
         RegisterClientMessage(new OpMsgSendScores().OpId, ReadMsgSendScores);
         RegisterClientMessage(new OpMsgGameRule().OpId, ReadMsgGameRule);
         RegisterClientMessage(new OpMsgMatchStatus().OpId, ReadMsgMatchStatus);
@@ -262,8 +301,23 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
     {
         base.OnClientDisconnected(disconnectInfo);
+        if (gameRule != null)
+        {
+            gameRule.OnStopConnection();
+            gameRule = null;
+        }
         if (onClientDisconnected != null)
             onClientDisconnected.Invoke(disconnectInfo);
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        if (gameRule != null)
+        {
+            gameRule.OnStopConnection();
+            gameRule = null;
+        }
     }
 
     public override void OnPeerDisconnected(long connectionId, DisconnectInfo disconnectInfo)
