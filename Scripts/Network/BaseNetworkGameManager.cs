@@ -4,6 +4,7 @@ using LiteNetLibManager;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
 
 public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 {
@@ -14,6 +15,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public static event System.Action<DisconnectInfo> onClientDisconnected;
 
     public BaseNetworkGameRule gameRule;
+    public int serverRestartDelay = 3;
     protected float updateScoreTime;
     protected float updateMatchTime;
     protected bool canUpdateGameRule;
@@ -57,22 +59,9 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             ClientUpdate();
     }
 
-    public override void OnPeerConnected(long connectionId)
-    {
-        base.OnPeerConnected(connectionId);
-        if (IsMatchEnded)
-        {
-            // Kick new connection while match is end
-            Server.Transport.ServerDisconnect(connectionId);
-        }
-    }
-
     protected virtual void ServerUpdate()
     {
         if (gameRule != null && canUpdateGameRule)
-            gameRule.OnUpdate();
-
-        if (gameRule != null)
         {
             gameRule.OnUpdate();
 
@@ -80,6 +69,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             {
                 UpdateMatchScores();
                 UpdateMatchStatus();
+                RestartWhenMatchEnd();
                 IsMatchEnded = true;
                 MatchEndedAt = Time.unscaledTime;
             }
@@ -118,6 +108,16 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
         msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
         ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
+    }
+
+    protected async void RestartWhenMatchEnd()
+    {
+        // Only server will restart when match end
+        if (!IsServer || IsClient) return;
+        StopServer();
+        Debug.Log($"Server stopped, will be started in {serverRestartDelay} seconds");
+        await Task.Delay(serverRestartDelay * 1000);
+        StartServer();
     }
 
     public void SendKillNotify(string killerName, string victimName, string weaponId)
@@ -301,11 +301,6 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
     {
         base.OnClientDisconnected(disconnectInfo);
-        if (gameRule != null)
-        {
-            gameRule.OnStopConnection();
-            gameRule = null;
-        }
         if (onClientDisconnected != null)
             onClientDisconnected.Invoke(disconnectInfo);
     }
@@ -317,6 +312,16 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         {
             gameRule.OnStopConnection();
             gameRule = null;
+        }
+    }
+
+    public override void OnPeerConnected(long connectionId)
+    {
+        base.OnPeerConnected(connectionId);
+        if (IsMatchEnded)
+        {
+            // Kick new connection while match is end
+            Server.Transport.ServerDisconnect(connectionId);
         }
     }
 
