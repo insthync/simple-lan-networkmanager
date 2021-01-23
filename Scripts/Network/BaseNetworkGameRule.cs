@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using LiteNetLibManager;
+using System.Threading.Tasks;
 
 public abstract class BaseNetworkGameRule : ScriptableObject
 {
@@ -69,6 +70,13 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public bool IsMatchEnded { get; protected set; }
     public BaseNetworkGameManager NetworkManager { get { return BaseNetworkGameManager.Singleton; } }
 
+
+    public async void DelayingAddBots()
+    {
+        await Task.Delay(1000);
+        AddBots();
+    }
+
     public virtual void AddBots()
     {
         if (!HasOptionBotCount)
@@ -111,7 +119,7 @@ public abstract class BaseNetworkGameRule : ScriptableObject
         teamKillA = 0;
         teamKillB = 0;
         IsMatchEnded = false;
-        AddBots();
+        DelayingAddBots();
     }
 
     public virtual void OnStopConnection()
@@ -125,12 +133,6 @@ public abstract class BaseNetworkGameRule : ScriptableObject
 
     public virtual void OnUpdate()
     {
-        if (!isBotAdded)
-        {
-            isBotAdded = true;
-            AddBots();
-        }
-
         if (HasOptionMatchTime && matchTime > 0 && Time.unscaledTime - matchStartTime >= matchTime && !IsMatchEnded)
         {
             IsMatchEnded = true;
