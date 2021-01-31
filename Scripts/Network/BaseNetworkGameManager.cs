@@ -325,7 +325,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void SerializeClientReadyData(NetDataWriter writer)
     {
         base.SerializeClientReadyData(writer);
-        writer.Put(SystemInfo.deviceUniqueIdentifier);
+        writer.Put(GetPlayerUDID());
         PrepareCharacter(writer);
     }
 
@@ -419,6 +419,12 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
                 gameRule.InitialClientObjects(Client);
         }
         canUpdateGameRule = true;
+    }
+
+    protected virtual string GetPlayerUDID()
+    {
+        // May override to use something like `userID` which stored at database
+        return SystemInfo.deviceUniqueIdentifier;
     }
 
     /// <summary>
