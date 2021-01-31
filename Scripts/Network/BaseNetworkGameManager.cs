@@ -16,10 +16,13 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     public BaseNetworkGameRule gameRule;
     public int serverRestartDelay = 3;
+    public bool doNotKeepPlayerScore;
     protected float updateScoreTime;
     protected float updateMatchTime;
     protected bool canUpdateGameRule;
     public readonly List<BaseNetworkGameCharacter> Characters = new List<BaseNetworkGameCharacter>();
+    public readonly Dictionary<string, uint> PlayerCharacterObjectIds = new Dictionary<string, uint>();
+    public readonly Dictionary<string, NetworkGameScore> PlayerScores = new Dictionary<string, NetworkGameScore>();
     public float RemainsMatchTime { get; protected set; }
     public bool IsMatchEnded { get; protected set; }
     public float MatchEndedAt { get; protected set; }
@@ -57,6 +60,35 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             ServerUpdate();
         if (IsClient)
             ClientUpdate();
+    }
+
+    protected override void LateUpdate()
+    {
+        base.LateUpdate();
+        if (IsServer && !doNotKeepPlayerScore)
+        {
+            // Store score
+            LiteNetLibIdentity tempIdentity;
+            BaseNetworkGameCharacter tempCharacter;
+            foreach (var kvPair in PlayerCharacterObjectIds)
+            {
+                if (!Assets.TryGetSpawnedObject(kvPair.Value, out tempIdentity))
+                    continue;
+                tempCharacter = tempIdentity.GetComponent<BaseNetworkGameCharacter>();
+                if (!tempCharacter)
+                    continue;
+                PlayerScores[kvPair.Key] = new NetworkGameScore()
+                {
+                    netId = tempCharacter.ObjectId,
+                    playerName = tempCharacter.playerName,
+                    team = tempCharacter.playerTeam,
+                    score = tempCharacter.Score,
+                    killCount = tempCharacter.KillCount,
+                    assistCount = tempCharacter.AssistCount,
+                    dieCount = tempCharacter.DieCount,
+                };
+            }
+        }
     }
 
     protected virtual void ServerUpdate()
@@ -160,12 +192,24 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         return scores;
     }
 
-    public void RegisterCharacter(BaseNetworkGameCharacter character)
+    public void RegisterCharacter(BaseNetworkGameCharacter character, string deviceUniqueIdentifier = "")
     {
         if (character == null || Characters.Contains(character))
             return;
         character.RegisterNetworkGameManager(this);
         Characters.Add(character);
+        if (!string.IsNullOrEmpty(deviceUniqueIdentifier))
+        {
+            PlayerCharacterObjectIds[deviceUniqueIdentifier] = character.ObjectId;
+            NetworkGameScore gameScore;
+            if (!doNotKeepPlayerScore && PlayerScores.TryGetValue(deviceUniqueIdentifier, out gameScore))
+            {
+                character.score = gameScore.score;
+                character.killCount = gameScore.killCount;
+                character.assistCount = gameScore.assistCount;
+                character.dieCount = gameScore.dieCount;
+            }
+        }
     }
 
     public bool CanCharacterRespawn(BaseNetworkGameCharacter character, params object[] extraParams)
@@ -281,12 +325,14 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public override void SerializeClientReadyData(NetDataWriter writer)
     {
         base.SerializeClientReadyData(writer);
+        writer.Put(SystemInfo.deviceUniqueIdentifier);
         PrepareCharacter(writer);
     }
 
     public override async UniTask<bool> DeserializeClientReadyData(LiteNetLibIdentity playerIdentity, long connectionId, NetDataReader reader)
     {
         await UniTask.Yield();
+        var deviceUniqueIdentifier = reader.GetString();
         var character = NewCharacter(reader);
         if (character == null)
         {
@@ -294,7 +340,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             return false;
         }
         Assets.NetworkSpawn(character.gameObject, 0, connectionId);
-        RegisterCharacter(character);
+        RegisterCharacter(character, deviceUniqueIdentifier);
         return true;
     }
 
