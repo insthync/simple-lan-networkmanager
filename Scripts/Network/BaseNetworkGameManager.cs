@@ -62,9 +62,9 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
             ClientUpdate();
     }
 
-    protected override void LateUpdate()
+    protected override void FixedUpdate()
     {
-        base.LateUpdate();
+        base.FixedUpdate();
         if (IsServer && !doNotKeepPlayerScore)
         {
             // Store score
