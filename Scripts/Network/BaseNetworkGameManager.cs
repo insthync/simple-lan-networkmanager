@@ -131,7 +131,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         var msgSendScores = new OpMsgSendScores();
         msgSendScores.scores = GetSortedScores();
-        ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
+        ServerSendPacketToAllConnections(0, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
     }
 
     protected void UpdateMatchStatus()
@@ -139,7 +139,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         var msgMatchStatus = new OpMsgMatchStatus();
         msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
         msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
-        ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
+        ServerSendPacketToAllConnections(0, DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
     }
 
     protected async void RestartWhenMatchEnd()
@@ -161,7 +161,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         msgKillNotify.killerName = killerName;
         msgKillNotify.victimName = victimName;
         msgKillNotify.weaponId = weaponId;
-        ServerSendPacketToAllConnections(DeliveryMethod.ReliableOrdered, msgKillNotify.OpId, msgKillNotify);
+        ServerSendPacketToAllConnections(0, DeliveryMethod.ReliableOrdered, msgKillNotify.OpId, msgKillNotify);
     }
 
     public NetworkGameScore[] GetSortedScores()
@@ -307,17 +307,17 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         {
             var msgSendScores = new OpMsgSendScores();
             msgSendScores.scores = GetSortedScores();
-            ServerSendPacket(requestHandler.ConnectionId, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
+            ServerSendPacket(requestHandler.ConnectionId, 0, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
         }
         if (gameRule != null)
         {
             var msgGameRule = new OpMsgGameRule();
             msgGameRule.gameRuleName = gameRule.name;
-            ServerSendPacket(requestHandler.ConnectionId, DeliveryMethod.ReliableOrdered, msgGameRule.OpId, msgGameRule);
+            ServerSendPacket(requestHandler.ConnectionId, 0, DeliveryMethod.ReliableOrdered, msgGameRule.OpId, msgGameRule);
             var msgMatchTime = new OpMsgMatchStatus();
             msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
             msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
-            ServerSendPacket(requestHandler.ConnectionId, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
+            ServerSendPacket(requestHandler.ConnectionId, 0, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
         }
         return base.HandleClientReadyRequest(requestHandler, request, result);
     }
