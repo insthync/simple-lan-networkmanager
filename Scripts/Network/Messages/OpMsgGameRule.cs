@@ -1,28 +1,18 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using LiteNetLibManager;
-using LiteNetLib.Utils;
+﻿using MLAPI.Serialization;
 
 public class OpMsgGameRule : BaseOpMsg
 {
-    public override ushort OpId
-    {
-        get
-        {
-            return 10002;
-        }
-    }
+    public const ushort OpId = 10002;
 
     public string gameRuleName;
 
-    public override void Deserialize(NetDataReader reader)
+    public override void Deserialize(NetworkReader reader)
     {
-        gameRuleName = reader.GetString();
+        gameRuleName = reader.ReadString().ToString();
     }
 
-    public override void Serialize(NetDataWriter writer)
+    public override void Serialize(NetworkWriter writer)
     {
-        writer.Put(gameRuleName);
+        writer.WriteString(gameRuleName);
     }
 }

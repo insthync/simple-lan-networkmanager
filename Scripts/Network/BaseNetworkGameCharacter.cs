@@ -1,23 +1,18 @@
-﻿using LiteNetLibManager;
+﻿using MLAPI;
+using MLAPI.NetworkVariable;
 
-public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.IComparable<BaseNetworkGameCharacter>
+public abstract class BaseNetworkGameCharacter : NetworkBehaviour, System.IComparable<BaseNetworkGameCharacter>
 {
     public static BaseNetworkGameCharacter Local { get; private set; }
-    public static uint LocalNetId { get { return Local ? Local.ObjectId : 0; } }
+    public static ulong LocalNetId { get { return Local ? Local.NetworkObjectId : 0; } }
     public static int LocalRank { get; set; }
 
-    [SyncField]
-    public string playerName;
-    [SyncField]
-    public byte playerTeam;
-    [SyncField]
-    public int score;
-    [SyncField]
-    public int killCount;
-    [SyncField]
-    public int assistCount;
-    [SyncField]
-    public int dieCount;
+    public NetworkVariableString playerName = new NetworkVariableString();
+    public NetworkVariableByte playerTeam = new NetworkVariableByte();
+    public NetworkVariableInt score = new NetworkVariableInt();
+    public NetworkVariableInt killCount = new NetworkVariableInt();
+    public NetworkVariableInt assistCount = new NetworkVariableInt();
+    public NetworkVariableInt dieCount = new NetworkVariableInt();
 
     public abstract bool IsDead { get; }
     public abstract bool IsBot { get; }
@@ -26,92 +21,88 @@ public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.ICo
     {
         get
         {
-            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroScoreWhenDead)
+            if (IsDead && NetworkGameManager != null && NetworkGameManager.gameRule != null && NetworkGameManager.gameRule.ShowZeroScoreWhenDead)
                 return 0;
-            return score;
+            return score.Value;
         }
     }
     public int KillCount
     {
         get
         {
-            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroKillCountWhenDead)
+            if (IsDead && NetworkGameManager != null && NetworkGameManager.gameRule != null && NetworkGameManager.gameRule.ShowZeroKillCountWhenDead)
                 return 0;
-            return killCount;
+            return killCount.Value;
         }
     }
     public int AssistCount
     {
         get
         {
-            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroAssistCountWhenDead)
+            if (IsDead && NetworkGameManager != null && NetworkGameManager.gameRule != null && NetworkGameManager.gameRule.ShowZeroAssistCountWhenDead)
                 return 0;
-            return assistCount;
+            return assistCount.Value;
         }
     }
     public int DieCount
     {
         get
         {
-            if (IsDead && NetworkManager != null && NetworkManager.gameRule != null && NetworkManager.gameRule.ShowZeroDieCountWhenDead)
+            if (IsDead && NetworkGameManager != null && NetworkGameManager.gameRule != null && NetworkGameManager.gameRule.ShowZeroDieCountWhenDead)
                 return 0;
-            return dieCount;
+            return dieCount.Value;
         }
     }
 
-    public BaseNetworkGameManager NetworkManager { get; protected set; }
-    public void RegisterNetworkGameManager(BaseNetworkGameManager networkManager)
-    {
-        NetworkManager = networkManager;
-    }
+    public BaseNetworkGameManager NetworkGameManager { get { return BaseNetworkGameManager.Singleton; } }
 
     public virtual bool CanRespawn(params object[] extraParams)
     {
-        if (NetworkManager != null)
-            return NetworkManager.CanCharacterRespawn(this, extraParams);
-        return true;
-    }
-    
-    public virtual bool Respawn(params object[] extraParams)
-    {
-        if (NetworkManager != null)
-            return NetworkManager.RespawnCharacter(this, extraParams);
+        if (NetworkGameManager != null)
+            return NetworkGameManager.CanCharacterRespawn(this, extraParams);
         return true;
     }
 
-    public override void OnStartOwnerClient()
+    public virtual bool Respawn(params object[] extraParams)
     {
+        if (NetworkGameManager != null)
+            return NetworkGameManager.RespawnCharacter(this, extraParams);
+        return true;
+    }
+
+    public override void OnGainedOwnership()
+    {
+        base.OnGainedOwnership();
         if (Local != null)
             return;
         Local = this;
         LocalRank = 0;
-        NetworkManager = Manager as BaseNetworkGameManager;
     }
 
     protected virtual void Update()
     {
-        if (NetworkManager != null)
-            NetworkManager.OnUpdateCharacter(this);
+        if (NetworkGameManager != null)
+            NetworkGameManager.OnUpdateCharacter(this);
     }
 
     public void ResetScore()
     {
-        score = 0;
+        score.Value = 0;
     }
 
     public void ResetKillCount()
     {
-        killCount = 0;
+        killCount.Value = 0;
     }
 
     public void ResetAssistCount()
     {
-        assistCount = 0;
+        assistCount.Value = 0;
     }
 
     public void ResetDieCount()
     {
-        dieCount = 0;
+        dieCount.Value = 0;
     }
 
     public int CompareTo(BaseNetworkGameCharacter other)

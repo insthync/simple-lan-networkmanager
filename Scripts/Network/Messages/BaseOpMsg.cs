@@ -1,11 +1,8 @@
-﻿using LiteNetLib.Utils;
-using LiteNetLibManager;
+﻿using MLAPI.Serialization;
 
-public abstract class BaseOpMsg : INetSerializable
+public abstract class BaseOpMsg
 {
-    public abstract ushort OpId { get; }
+    public abstract void Deserialize(NetworkReader reader);
 
-    public abstract void Deserialize(NetDataReader reader);
-
-    public abstract void Serialize(NetDataWriter writer);
+    public abstract void Serialize(NetworkWriter writer);
 }

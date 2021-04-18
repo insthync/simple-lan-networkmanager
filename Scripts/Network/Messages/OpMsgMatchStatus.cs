@@ -1,30 +1,21 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using LiteNetLib.Utils;
-using UnityEngine;
+﻿using MLAPI.Serialization;
 
 public class OpMsgMatchStatus : BaseOpMsg
 {
-    public override ushort OpId
-    {
-        get
-        {
-            return 10003;
-        }
-    }
+    public const ushort OpId = 10003;
 
     public float remainsMatchTime;
     public bool isMatchEnded;
 
-    public override void Deserialize(NetDataReader reader)
+    public override void Deserialize(NetworkReader reader)
     {
-        remainsMatchTime = reader.GetFloat();
-        isMatchEnded = reader.GetBool();
+        remainsMatchTime = reader.ReadSingle();
+        isMatchEnded = reader.ReadBool();
     }
 
-    public override void Serialize(NetDataWriter writer)
+    public override void Serialize(NetworkWriter writer)
     {
-        writer.Put(remainsMatchTime);
-        writer.Put(isMatchEnded);
+        writer.WriteSingle(remainsMatchTime);
+        writer.WriteBool(isMatchEnded);
     }
 }

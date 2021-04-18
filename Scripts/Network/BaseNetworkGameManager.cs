@@ -5,6 +5,12 @@ using LiteNetLib;
 using LiteNetLib.Utils;
 using Cysharp.Threading.Tasks;
 using System.Threading.Tasks;
+using MLAPI.Spawning;
+using MLAPI;
+using MLAPI.Messaging;
+using MLAPI.Serialization.Pooled;
+using MLAPI.Serialization;
+using MLAPI.Connection;
 
 public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 {
@@ -12,7 +18,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         get { return singleton as BaseNetworkGameManager; }
     }
-    public static event System.Action<DisconnectInfo> onClientDisconnected;
+    public static event System.Action onClientDisconnected;
 
     public BaseNetworkGameRule gameRule;
     public int serverRestartDelay = 3;
@@ -21,7 +27,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     protected float updateMatchTime;
     protected bool canUpdateGameRule;
     public readonly List<BaseNetworkGameCharacter> Characters = new List<BaseNetworkGameCharacter>();
-    public readonly Dictionary<string, uint> PlayerCharacterObjectIds = new Dictionary<string, uint>();
+    public readonly Dictionary<string, ulong> PlayerCharacterObjectIds = new Dictionary<string, ulong>();
     public readonly Dictionary<string, NetworkGameScore> PlayerScores = new Dictionary<string, NetworkGameScore>();
     public float RemainsMatchTime { get; protected set; }
     public bool IsMatchEnded { get; protected set; }
@@ -53,33 +59,38 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         return count;
     }
 
+    protected override void Start()
+    {
+        base.Start();
+        NetworkManager.ConnectionApprovalCallback += NetworkManager_ConnectionApprovalCallback;
+    }
+
     protected override void Update()
     {
         base.Update();
-        if (IsServer)
+        if (NetworkManager.IsServer)
             ServerUpdate();
-        if (IsClient)
+        if (NetworkManager.IsClient)
             ClientUpdate();
     }
 
-    protected override void FixedUpdate()
+    protected virtual void FixedUpdate()
     {
-        base.FixedUpdate();
-        if (IsServer && !doNotKeepPlayerScore)
+        if (NetworkManager.IsServer && !doNotKeepPlayerScore)
         {
             // Store score
-            LiteNetLibIdentity tempIdentity;
+            NetworkObject tempIdentity;
             BaseNetworkGameCharacter tempCharacter;
             foreach (var kvPair in PlayerCharacterObjectIds)
             {
-                if (!Assets.TryGetSpawnedObject(kvPair.Value, out tempIdentity))
+                if (!NetworkSpawnManager.SpawnedObjects.TryGetValue(kvPair.Value, out tempIdentity))
                     continue;
                 tempCharacter = tempIdentity.GetComponent<BaseNetworkGameCharacter>();
                 if (!tempCharacter)
                     continue;
                 PlayerScores[kvPair.Key] = new NetworkGameScore()
                 {
-                    netId = tempCharacter.ObjectId,
+                    netId = tempCharacter.NetworkObjectId,
                     playerName = tempCharacter.playerName,
                     team = tempCharacter.playerTeam,
                     score = tempCharacter.Score,
@@ -131,7 +142,10 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         var msgSendScores = new OpMsgSendScores();
         msgSendScores.scores = GetSortedScores();
-        ServerSendPacketToAllConnections(0, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
+        var buffer = new NetworkBuffer();
+        var writer = new NetworkWriter(buffer);
+        msgSendScores.Serialize(writer);
+        CustomMessagingManager.SendUnnamedMessage(null, buffer);
     }
 
     protected void UpdateMatchStatus()
@@ -139,29 +153,35 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         var msgMatchStatus = new OpMsgMatchStatus();
         msgMatchStatus.remainsMatchTime = gameRule.RemainsMatchTime;
         msgMatchStatus.isMatchEnded = gameRule.IsMatchEnded;
-        ServerSendPacketToAllConnections(0, DeliveryMethod.ReliableOrdered, msgMatchStatus.OpId, msgMatchStatus);
+        var buffer = new NetworkBuffer();
+        var writer = new NetworkWriter(buffer);
+        msgMatchStatus.Serialize(writer);
+        CustomMessagingManager.SendUnnamedMessage(null, buffer);
     }
 
     protected async void RestartWhenMatchEnd()
     {
         // Only server will restart when match end
-        if (!IsServer || IsClient) return;
-        StopServer();
+        if (!NetworkManager.IsServer || NetworkManager.IsClient) return;
+        NetworkManager.StopServer();
         Debug.Log($"Server stopped, will be started in {serverRestartDelay} seconds");
         await Task.Delay(serverRestartDelay * 1000);
-        StartServer();
+        NetworkManager.StartServer();
     }
 
     public void SendKillNotify(string killerName, string victimName, string weaponId)
     {
-        if (!IsServer)
+        if (!NetworkManager.IsServer)
             return;
 
         var msgKillNotify = new OpMsgKillNotify();
         msgKillNotify.killerName = killerName;
         msgKillNotify.victimName = victimName;
         msgKillNotify.weaponId = weaponId;
-        ServerSendPacketToAllConnections(0, DeliveryMethod.ReliableOrdered, msgKillNotify.OpId, msgKillNotify);
+        var buffer = new NetworkBuffer();
+        var writer = new NetworkWriter(buffer);
+        msgKillNotify.Serialize(writer);
+        CustomMessagingManager.SendUnnamedMessage(null, buffer);
     }
 
     public NetworkGameScore[] GetSortedScores()
@@ -178,7 +198,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         {
             var character = Characters[i];
             var score = new NetworkGameScore();
-            score.netId = character.ObjectId;
+            score.netId = character.NetworkObjectId;
             score.playerName = character.playerName;
             score.team = character.playerTeam;
             score.score = character.Score;
@@ -200,7 +220,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         Characters.Add(character);
         if (!string.IsNullOrEmpty(deviceUniqueIdentifier))
         {
-            PlayerCharacterObjectIds[deviceUniqueIdentifier] = character.ObjectId;
+            PlayerCharacterObjectIds[deviceUniqueIdentifier] = character.NetworkObjectId;
             NetworkGameScore gameScore;
             if (!doNotKeepPlayerScore && PlayerScores.TryGetValue(deviceUniqueIdentifier, out gameScore))
             {
@@ -246,7 +266,6 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     public override void OnStartServer()
     {
-        base.OnStartServer();
         updateScoreTime = 0f;
         updateMatchTime = 0f;
         RemainsMatchTime = 0f;
@@ -257,35 +276,37 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 
     protected override void RegisterMessages()
     {
-        base.RegisterMessages();
-        RegisterClientMessage(new OpMsgSendScores().OpId, ReadMsgSendScores);
-        RegisterClientMessage(new OpMsgGameRule().OpId, ReadMsgGameRule);
-        RegisterClientMessage(new OpMsgMatchStatus().OpId, ReadMsgMatchStatus);
-        RegisterClientMessage(new OpMsgKillNotify().OpId, ReadMsgKillNotify);
+        RegisterMessage(OpMsgSendScores.OpId, ReadMsgSendScores);
+        RegisterMessage(OpMsgGameRule.OpId, ReadMsgGameRule);
+        RegisterMessage(OpMsgMatchStatus.OpId, ReadMsgMatchStatus);
+        RegisterMessage(OpMsgKillNotify.OpId, ReadMsgKillNotify);
     }
 
-    protected void ReadMsgSendScores(MessageHandlerData messageHandler)
+    protected void ReadMsgSendScores(ulong clientId, PooledNetworkReader reader)
     {
-        var msg = messageHandler.ReadMessage<OpMsgSendScores>();
+        var msg = new OpMsgSendScores();
+        msg.Deserialize(reader);
         UpdateScores(msg.scores);
     }
 
-    protected void ReadMsgGameRule(MessageHandlerData messageHandler)
+    protected void ReadMsgGameRule(ulong clientId, PooledNetworkReader reader)
     {
-        if (IsServer)
+        if (NetworkManager.IsServer)
             return;
-        var msg = messageHandler.ReadMessage<OpMsgGameRule>();
+        var msg = new OpMsgGameRule();
+        msg.Deserialize(reader);
         BaseNetworkGameRule foundGameRule;
         if (BaseNetworkGameInstance.GameRules.TryGetValue(msg.gameRuleName, out foundGameRule))
         {
             gameRule = foundGameRule;
-            gameRule.InitialClientObjects(Client);
+            gameRule.InitialClientObjects();
         }
     }
 
-    protected void ReadMsgMatchStatus(MessageHandlerData messageHandler)
+    protected void ReadMsgMatchStatus(ulong clientId, PooledNetworkReader reader)
     {
-        var msg = messageHandler.ReadMessage<OpMsgMatchStatus>();
+        var msg = new OpMsgMatchStatus();
+        msg.Deserialize(reader);
         RemainsMatchTime = msg.remainsMatchTime;
         if (!IsMatchEnded && msg.isMatchEnded)
         {
@@ -294,66 +315,21 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    protected void ReadMsgKillNotify(MessageHandlerData messageHandler)
+    protected void ReadMsgKillNotify(ulong clientId, PooledNetworkReader reader)
     {
-        var msg = messageHandler.ReadMessage<OpMsgKillNotify>();
+        var msg = new OpMsgKillNotify();
+        msg.Deserialize(reader);
         KillNotify(msg.killerName, msg.victimName, msg.weaponId);
     }
 
-    protected override UniTaskVoid HandleClientReadyRequest(RequestHandlerData requestHandler, EmptyMessage request, RequestProceedResultDelegate<EmptyMessage> result)
+    public override void OnClientDisconnected()
     {
-        // Send game rule data before spawn player's character
-        if (gameRule == null || !gameRule.IsMatchEnded)
-        {
-            var msgSendScores = new OpMsgSendScores();
-            msgSendScores.scores = GetSortedScores();
-            ServerSendPacket(requestHandler.ConnectionId, 0, DeliveryMethod.ReliableOrdered, msgSendScores.OpId, msgSendScores);
-        }
-        if (gameRule != null)
-        {
-            var msgGameRule = new OpMsgGameRule();
-            msgGameRule.gameRuleName = gameRule.name;
-            ServerSendPacket(requestHandler.ConnectionId, 0, DeliveryMethod.ReliableOrdered, msgGameRule.OpId, msgGameRule);
-            var msgMatchTime = new OpMsgMatchStatus();
-            msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
-            msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
-            ServerSendPacket(requestHandler.ConnectionId, 0, DeliveryMethod.ReliableOrdered, msgMatchTime.OpId, msgMatchTime);
-        }
-        return base.HandleClientReadyRequest(requestHandler, request, result);
-    }
-
-    public override void SerializeClientReadyData(NetDataWriter writer)
-    {
-        base.SerializeClientReadyData(writer);
-        writer.Put(GetPlayerUDID());
-        PrepareCharacter(writer);
-    }
-
-    public override async UniTask<bool> DeserializeClientReadyData(LiteNetLibIdentity playerIdentity, long connectionId, NetDataReader reader)
-    {
-        await UniTask.Yield();
-        var deviceUniqueIdentifier = reader.GetString();
-        var character = NewCharacter(reader);
-        if (character == null)
-        {
-            Debug.LogError("Cannot create new character for player " + connectionId);
-            return false;
-        }
-        Assets.NetworkSpawn(character.gameObject, 0, connectionId);
-        RegisterCharacter(character, deviceUniqueIdentifier);
-        return true;
-    }
-
-    public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
-    {
-        base.OnClientDisconnected(disconnectInfo);
         if (onClientDisconnected != null)
-            onClientDisconnected.Invoke(disconnectInfo);
+            onClientDisconnected.Invoke();
     }
 
     public override void OnStopClient()
     {
-        base.OnStopClient();
         if (gameRule != null)
         {
             gameRule.OnStopConnection();
@@ -361,35 +337,85 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    public override void OnPeerConnected(long connectionId)
+    public override void OnStopServer()
     {
-        base.OnPeerConnected(connectionId);
-        if (IsMatchEnded)
-        {
-            // Kick new connection while match is end
-            Server.Transport.ServerDisconnect(connectionId);
-        }
+        Characters.Clear();
     }
 
-    public override void OnPeerDisconnected(long connectionId, DisconnectInfo disconnectInfo)
+    public override void StartGameClient()
     {
-        LiteNetLibPlayer player;
-        if (Players.TryGetValue(connectionId, out player))
+        var buffer = new NetworkBuffer();
+        var writer = new NetworkWriter(buffer);
+        writer.WriteString(GetPlayerUDID());
+        PrepareCharacter(writer);
+        NetworkManager.NetworkConfig.ConnectionData = buffer.GetBuffer();
+        base.StartGameClient();
+    }
+
+    private void NetworkManager_ConnectionApprovalCallback(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback)
+    {
+        if (IsMatchEnded)
         {
-            foreach (var spawnedObject in player.GetSpawnedObjects())
+            // Match ended, don't approve new connection
+            callback.Invoke(false, null, false, null, null);
+        }
+        // Send game rule data before spawn player's character
+        if (gameRule == null || !gameRule.IsMatchEnded)
+        {
+            // send scores
+            var msgSendScores = new OpMsgSendScores();
+            msgSendScores.scores = GetSortedScores();
+            var buffer = new NetworkBuffer();
+            var writer = new NetworkWriter(buffer);
+            msgSendScores.Serialize(writer);
+            CustomMessagingManager.SendUnnamedMessage(new List<ulong>() { clientId }, buffer);
+        }
+        if (gameRule != null)
+        {
+            // send game rule
+            var msgGameRule = new OpMsgGameRule();
+            msgGameRule.gameRuleName = gameRule.name;
+            var buffer = new NetworkBuffer();
+            var writer = new NetworkWriter(buffer);
+            msgGameRule.Serialize(writer);
+            CustomMessagingManager.SendUnnamedMessage(new List<ulong>() { clientId }, buffer);
+            // Set match time
+            var msgMatchTime = new OpMsgMatchStatus();
+            msgMatchTime.remainsMatchTime = gameRule.RemainsMatchTime;
+            msgMatchTime.isMatchEnded = gameRule.IsMatchEnded;
+            buffer = new NetworkBuffer();
+            writer = new NetworkWriter(buffer);
+            msgMatchTime.Serialize(writer);
+            CustomMessagingManager.SendUnnamedMessage(new List<ulong>() { clientId }, buffer);
+        }
+        var reader = new NetworkReader(new NetworkBuffer(connectionData));
+        var deviceUniqueIdentifier = reader.ReadString().ToString();
+        var character = NewCharacter(reader);
+        if (character == null)
+        {
+            Debug.LogError("Cannot create new character for player " + clientId);
+            callback.Invoke(false, null, false, null, null);
+            return;
+        }
+        // Approved
+        callback.Invoke(false, null, true, null, null);
+        var networkObj = character.GetComponent<NetworkObject>();
+        networkObj.SpawnAsPlayerObject(clientId);
+        RegisterCharacter(character, deviceUniqueIdentifier);
+    }
+
+    public override void OnPeerDisconnected(ulong connectionId)
+    {
+        NetworkClient player;
+        if (NetworkManager.ConnectedClients.TryGetValue(connectionId, out player))
+        {
+            foreach (var spawnedObject in player.OwnedObjects)
             {
                 var character = spawnedObject.GetComponent<BaseNetworkGameCharacter>();
                 if (character != null)
                     Characters.Remove(character);
             }
         }
-        base.OnPeerDisconnected(connectionId, disconnectInfo);
-    }
-
-    public override void OnStopServer()
-    {
-        base.OnStopServer();
-        Characters.Clear();
     }
 
     protected void RegisterGamerulePrefabs()
@@ -415,8 +441,8 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         if (gameRule != null)
         {
             gameRule.OnStartServer();
-            if (IsClient)
-                gameRule.InitialClientObjects(Client);
+            if (NetworkManager.IsClient)
+                gameRule.InitialClientObjects();
         }
         canUpdateGameRule = true;
     }
@@ -431,13 +457,13 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     /// Prepare character at client
     /// </summary>
     /// <param name="writer"></param>
-    protected abstract void PrepareCharacter(NetDataWriter writer);
+    protected abstract void PrepareCharacter(NetworkWriter writer);
     /// <summary>
     /// Create new character at server
     /// </summary>
     /// <param name="reader"></param>
     /// <returns></returns>
-    protected abstract BaseNetworkGameCharacter NewCharacter(NetDataReader reader);
+    protected abstract BaseNetworkGameCharacter NewCharacter(NetworkReader reader);
     protected abstract void UpdateScores(NetworkGameScore[] scores);
     protected abstract void KillNotify(string killerName, string victimName, string weaponId);
 }
