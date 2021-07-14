@@ -11,25 +11,25 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public const string MatchScoreKey = "-gameMatchScore";
 
     [SerializeField]
-    private string title;
+    private string title = string.Empty;
     [SerializeField, TextArea]
-    private string description;
+    private string description = string.Empty;
     [SerializeField]
-    private int defaultBotCount;
+    private int defaultBotCount = 0;
     [System.NonSerialized]
-    public int botCount;
+    private int botCount = 0;
     [SerializeField, Tooltip("Time in seconds, 0 = Unlimit")]
-    private int defaultMatchTime;
+    private int defaultMatchTime = 0;
     [System.NonSerialized]
-    public int matchTime;
+    private int matchTime = 0;
     [SerializeField, Tooltip("Match kill limit, 0 = Unlimit")]
-    private int defaultMatchKill;
+    private int defaultMatchKill = 0;
     [System.NonSerialized]
-    public int matchKill;
+    private int matchKill = 0;
     [SerializeField, Tooltip("Match score limit, 0 = Unlimit")]
-    private int defaultMatchScore;
+    private int defaultMatchScore = 0;
     [System.NonSerialized]
-    public int matchScore;
+    private int matchScore = 0;
     protected float matchStartTime;
     protected bool isBotAdded;
     protected int teamScoreA;
@@ -43,6 +43,10 @@ public abstract class BaseNetworkGameRule : ScriptableObject
     public int DefaultMatchTime { get { return defaultMatchTime; } }
     public int DefaultMatchKill { get { return defaultMatchKill; } }
     public int DefaultMatchScore { get { return defaultMatchScore; } }
+    public int BotCount { get { return botCount; } set { botCount = value; } }
+    public int MatchTime { get { return matchTime; } set { matchTime = value; } }
+    public int MatchKill { get { return matchKill; } set { matchKill = value; } }
+    public int MatchScore { get { return matchScore; } set { matchScore = value; } }
     public virtual bool HasOptionBotCount { get { return false; } }
     public virtual bool HasOptionMatchTime { get { return false; } }
     public virtual bool HasOptionMatchKill { get { return false; } }

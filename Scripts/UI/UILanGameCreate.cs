@@ -51,10 +51,10 @@ public class UILanGameCreate : UIBase
 
         if (selectedGameRule != null && networkGameManager != null)
         {
-            selectedGameRule.botCount = inputBotCount == null ? selectedGameRule.DefaultBotCount : int.Parse(inputBotCount.text);
-            selectedGameRule.matchTime = inputMatchTime == null ? selectedGameRule.DefaultMatchTime : int.Parse(inputMatchTime.text);
-            selectedGameRule.matchKill = inputMatchKill == null ? selectedGameRule.DefaultMatchKill : int.Parse(inputMatchKill.text);
-            selectedGameRule.matchScore = inputMatchScore == null ? selectedGameRule.DefaultMatchScore : int.Parse(inputMatchScore.text);
+            selectedGameRule.BotCount = inputBotCount == null ? selectedGameRule.DefaultBotCount : int.Parse(inputBotCount.text);
+            selectedGameRule.MatchTime = inputMatchTime == null ? selectedGameRule.DefaultMatchTime : int.Parse(inputMatchTime.text);
+            selectedGameRule.MatchKill = inputMatchKill == null ? selectedGameRule.DefaultMatchKill : int.Parse(inputMatchKill.text);
+            selectedGameRule.MatchScore = inputMatchScore == null ? selectedGameRule.DefaultMatchScore : int.Parse(inputMatchScore.text);
             networkGameManager.gameRule = selectedGameRule;
         }
 
