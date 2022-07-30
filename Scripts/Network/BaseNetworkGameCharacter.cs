@@ -71,7 +71,7 @@ public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.ICo
             return NetworkManager.CanCharacterRespawn(this, extraParams);
         return true;
     }
-    
+
     public virtual bool Respawn(params object[] extraParams)
     {
         if (NetworkManager != null)
@@ -116,6 +116,9 @@ public abstract class BaseNetworkGameCharacter : LiteNetLibBehaviour, System.ICo
 
     public int CompareTo(BaseNetworkGameCharacter other)
     {
-        return Score.CompareTo(other.Score) * -10;
+        if (NetworkManager.RankedByKillCount)
+            return (KillCount.CompareTo(other.KillCount) * -100) + (AssistCount.CompareTo(other.AssistCount) * -10);
+        else
+            return Score.CompareTo(other.Score) * -10;
     }
 }

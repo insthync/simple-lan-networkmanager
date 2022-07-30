@@ -26,6 +26,15 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     public float RemainsMatchTime { get; protected set; }
     public bool IsMatchEnded { get; protected set; }
     public float MatchEndedAt { get; protected set; }
+    public bool RankedByKillCount
+    {
+        get
+        {
+            if (gameRule != null)
+                return gameRule.RankedByKillCount;
+            return false;
+        }
+    }
 
     public int CountAliveCharacters()
     {
