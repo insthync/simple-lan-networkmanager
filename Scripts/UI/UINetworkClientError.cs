@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using LiteNetLib;
 using System.Text.RegularExpressions;
+using System.Net.Sockets;
 
 public class UINetworkClientError : MonoBehaviour
 {
@@ -21,14 +22,14 @@ public class UINetworkClientError : MonoBehaviour
         BaseNetworkGameManager.onClientDisconnected += OnClientDisconnected;
     }
 
-    public void OnClientDisconnected(DisconnectInfo disconnectInfo)
+    public void OnClientDisconnected(DisconnectReason reason, SocketError socketError, byte[] data)
     {
-        if (disconnectInfo.Reason == DisconnectReason.DisconnectPeerCalled)
+        if (reason == DisconnectReason.DisconnectPeerCalled)
             return;
 
         if (messageDialog == null)
             return;
         
-        messageDialog.Show(Regex.Replace(disconnectInfo.Reason.ToString(), "(?!^)([A-Z])", " $1"));
+        messageDialog.Show(Regex.Replace(reason.ToString(), "(?!^)([A-Z])", " $1"));
     }
 }

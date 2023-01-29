@@ -5,6 +5,7 @@ using LiteNetLib;
 using LiteNetLib.Utils;
 using Cysharp.Threading.Tasks;
 using System.Threading.Tasks;
+using System.Net.Sockets;
 
 public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
 {
@@ -12,7 +13,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
     {
         get { return singleton as BaseNetworkGameManager; }
     }
-    public static event System.Action<DisconnectInfo> onClientDisconnected;
+    public static event System.Action<DisconnectReason, SocketError, byte[]> onClientDisconnected;
 
     public BaseNetworkGameRule gameRule;
     public int serverRestartDelay = 3;
@@ -353,11 +354,11 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         return true;
     }
 
-    public override void OnClientDisconnected(DisconnectInfo disconnectInfo)
+    public override void OnClientDisconnected(DisconnectReason reason, SocketError socketError, byte[] data)
     {
-        base.OnClientDisconnected(disconnectInfo);
+        base.OnClientDisconnected(reason, socketError, data);
         if (onClientDisconnected != null)
-            onClientDisconnected.Invoke(disconnectInfo);
+            onClientDisconnected.Invoke(reason, socketError, data);
     }
 
     public override void OnStopClient()
@@ -380,7 +381,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
         }
     }
 
-    public override void OnPeerDisconnected(long connectionId, DisconnectInfo disconnectInfo)
+    public override void OnPeerDisconnected(long connectionId, DisconnectReason reason, SocketError socketError)
     {
         LiteNetLibPlayer player;
         if (Players.TryGetValue(connectionId, out player))
@@ -392,7 +393,7 @@ public abstract class BaseNetworkGameManager : SimpleLanNetworkManager
                     Characters.Remove(character);
             }
         }
-        base.OnPeerDisconnected(connectionId, disconnectInfo);
+        base.OnPeerDisconnected(connectionId, reason, socketError);
     }
 
     public override void OnStopServer()
